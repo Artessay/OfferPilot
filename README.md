@@ -8,6 +8,7 @@
 - [需求分析报告](docs/01-requirements-analysis.md)
 - [系统概要设计说明书](docs/02-system-architecture-design.md)
 - [系统详细设计说明书](docs/03-detailed-design.md)
+- [AI 原生用户交互与界面设计方案](docs/04-ai-native-interaction-ui-design.md)
 
 ## 第一阶段范围
 

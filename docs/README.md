@@ -10,6 +10,7 @@
 | [01-requirements-analysis.md](01-requirements-analysis.md) | 需求分析报告，覆盖业务模型、系统概念模型、目标用户、功能与非功能需求 |
 | [02-system-architecture-design.md](02-system-architecture-design.md) | 系统概要设计说明书，覆盖总体架构、技术方案、模块划分与外部接口 |
 | [03-detailed-design.md](03-detailed-design.md) | 系统详细设计说明书，覆盖页面流程、数据模型、算法、Prompt、异常与测试设计 |
+| [04-ai-native-interaction-ui-design.md](04-ai-native-interaction-ui-design.md) | AI 原生用户交互与界面设计方案，覆盖用户旅程、核心页面、AI 交互组件、视觉风格和体验验收标准 |
 
 ## 第一阶段设计口径
 
