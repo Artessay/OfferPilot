@@ -26,7 +26,7 @@
 | 表现层 | Web 前端页面、移动端响应式适配、用户交互、报告可视化 |
 | 接入层 | API 网关或 FastAPI 路由、认证鉴权、CORS、限流、请求校验 |
 | 业务层 | 用户画像、简历管理、岗位管理、匹配任务、报告管理、投递记录 |
-| AI 编排层 | 简历解析、JD 解析、Embedding、匹配评分、LLM 解释、优化建议生成 |
+| AI 编排层 | 简历解析、JD 解析、岗位发现、Embedding、匹配评分、机会梯度分层、LLM 解释、优化建议生成、简历改写 |
 | 数据层 | PostgreSQL、对象存储、向量索引、缓存、任务队列 |
 | 运维层 | 日志、监控、告警、配置管理、模型与提示词版本管理 |
 
@@ -44,6 +44,7 @@ flowchart LR
     API --> Queue[(任务队列)]
     API --> LLM[LLM Provider]
     API --> Parser[文档解析组件]
+    API --> JobSource[授权岗位源/学校就业源]
 ```
 
 ### 2.3 部署拓扑
@@ -108,8 +109,11 @@ flowchart TD
 | 简历解析 | 文件解析器提取文本，规则抽取基础字段，LLM 补充结构化信息 |
 | JD 解析 | LLM 将 JD 转换为职责、要求、技能、关键词、加分项等结构化结果 |
 | 语义匹配 | 结合规则评分、关键词覆盖、Embedding 相似度和 LLM 评估 |
+| 岗位发现 | 通过后台岗位库、学校就业源、第三方授权 API 获取候选岗位，并用画像和简历标签做初筛 |
+| 分层岗位推荐 | 结合岗位匹配度、申请成功率预测、硬性门槛、机会价值、竞争风险和用户偏好，生成拓展机会、重点匹配、基础保障等机会梯度 |
 | 报告解释 | LLM 基于结构化评分和证据生成自然语言解释 |
 | 简历优化 | LLM 按建议模板生成可执行修改建议，禁止虚构经历 |
+| 简历改写 | 用户确认采纳建议后，LLM 在限定片段内生成改写草稿，并输出差异说明 |
 | 质量控制 | JSON Schema 校验、事实约束、敏感信息过滤、提示词版本管理 |
 
 ## 4. 模块划分
@@ -123,8 +127,11 @@ flowchart TD
 | 求职画像模块 | 维护目标岗位、城市、行业、技能标签 | 调用 Profile API |
 | 简历管理模块 | 上传简历、查看解析结果、管理版本 | 调用 Resume API |
 | 岗位管理模块 | 粘贴 JD、查看岗位库、编辑岗位信息 | 调用 Job API |
+| AI 岗位发现模块 | 选择岗位源、配置检索条件、查看候选岗位 | 调用 Job Discovery API |
 | 匹配分析模块 | 创建匹配任务、轮询进度、展示报告 | 调用 Match API 与 Report API |
+| 分层推荐模块 | 按机会梯度展示岗位推荐组合，包含匹配度、申请成功率预测和风险等级 | 调用 Recommendation API |
 | 优化建议模块 | 展示建议、标记采纳、生成简历修改清单 | 调用 Suggestion API |
+| AI 简历改写模块 | 展示改写前后差异，允许用户确认、微调或放弃 | 调用 Resume Rewrite API |
 | 历史记录模块 | 查询历史报告和岗位记录 | 调用 Report API、Application API |
 | 管理后台模块 | 管理岗位、提示词、评分规则 | 调用 Admin API |
 
@@ -136,8 +143,11 @@ flowchart TD
 | Profile Service | 求职画像维护和技能标签管理 | Profile、SkillTag |
 | Resume Service | 简历上传、文件管理、解析结果保存、版本管理 | Resume、ResumeVersion、ResumeAnalysis |
 | Job Service | JD 导入、岗位信息维护、岗位解析 | Job、JobAnalysis |
+| Job Discovery Service | 岗位源接入、候选岗位检索、授权状态校验、过期岗位过滤 | JobDiscoveryTask、JobSourceConfig |
 | Match Service | 匹配任务创建、评分计算、任务状态管理 | MatchTask、MatchScore |
+| Recommendation Service | 根据岗位匹配度、申请成功率预测、机会价值和风险等级生成分层推荐组合 | RecommendationTier、RecommendationList |
 | Report Service | 匹配报告生成、查询、导出 | MatchReport、Suggestion |
+| Resume Rewrite Service | 根据用户采纳建议生成改写草稿、差异和新简历版本 | ResumeRewriteTask、ResumeVersion |
 | AI Orchestration Service | LLM 调用、Embedding、Prompt 管理、结果校验 | PromptTemplate、ModelCallLog |
 | Application Service | 投递记录、状态流转、复盘备注 | ApplicationRecord |
 | Admin Service | 岗位库、评分规则、提示词版本管理 | AdminConfig、ScoringRule |
@@ -163,9 +173,12 @@ AI 编排模块对外提供以下内部服务接口：
 | --- | --- | --- |
 | parse_resume | 简历文本、文件元数据 | 简历结构化结果、技能标签、经历摘要 |
 | parse_job | JD 文本、岗位元数据 | 岗位职责、要求、关键词、加分项 |
+| discover_jobs | 求职画像、简历标签、岗位源配置 | 候选岗位列表、来源、初筛理由 |
 | score_match | 简历分析结果、岗位分析结果、画像 | 总分、维度分、证据、风险 |
+| classify_job_tiers | 候选岗位、岗位匹配度、申请成功率预测、机会价值、风险等级、用户偏好 | 机会梯度分层结果 |
 | generate_report | 评分结果、简历证据、岗位要求 | 匹配报告正文 |
 | generate_suggestions | 匹配差距、JD 要求、简历内容 | 优化建议列表 |
+| rewrite_resume | 原简历片段、用户采纳建议、JD 要求 | 改写草稿、差异摘要、新版本建议 |
 
 ## 5. 数据架构
 
@@ -290,6 +303,17 @@ erDiagram
 | POST | /api/v1/jobs/{jobId}/parse | 创建 JD 解析任务 | jobId |
 | GET | /api/v1/jobs/{jobId}/analysis | 查询 JD 解析结果 | jobId |
 
+### 6.5.1 岗位发现与分层推荐接口
+
+| 方法 | 路径 | 说明 | 关键字段 |
+| --- | --- | --- | --- |
+| POST | /api/v1/job-discovery/tasks | 创建 AI 岗位发现任务 | profileId、resumeVersionId、sourceIds、filters |
+| GET | /api/v1/job-discovery/tasks/{taskId} | 查询岗位发现任务状态 | taskId |
+| GET | /api/v1/job-discovery/tasks/{taskId}/candidates | 查询候选岗位列表 | taskId、tier、page |
+| POST | /api/v1/recommendations/tiered | 基于候选岗位生成分层岗位推荐组合 | discoveryTaskId、resumeVersionId、strategy |
+| GET | /api/v1/recommendations/{recommendationId} | 查询分层岗位推荐结果 | recommendationId |
+| POST | /api/v1/job-sources/authorize | 授权岗位数据源 | sourceType、authCode、scope |
+
 ### 6.6 匹配与报告接口
 
 | 方法 | 路径 | 说明 | 关键字段 |
@@ -300,6 +324,9 @@ erDiagram
 | GET | /api/v1/reports/{reportId} | 查询报告详情 | reportId |
 | POST | /api/v1/reports/{reportId}/suggestions/regenerate | 重新生成建议 | reportId、focusArea |
 | PATCH | /api/v1/suggestions/{suggestionId} | 更新建议状态 | status、note |
+| POST | /api/v1/resume-rewrites | 基于已采纳建议生成简历改写草稿 | resumeVersionId、reportId、suggestionIds |
+| GET | /api/v1/resume-rewrites/{rewriteTaskId} | 查询改写任务和差异结果 | rewriteTaskId |
+| POST | /api/v1/resume-rewrites/{rewriteTaskId}/confirm | 确认改写并生成新简历版本 | rewriteTaskId、editedContent |
 
 匹配任务响应示例：
 
