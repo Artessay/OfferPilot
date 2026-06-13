@@ -11,6 +11,9 @@
 | [02-system-architecture-design.md](02-system-architecture-design.md) | 系统概要设计说明书，覆盖总体架构、技术方案、模块划分与外部接口 |
 | [03-detailed-design.md](03-detailed-design.md) | 系统详细设计说明书，覆盖页面流程、数据模型、算法、Prompt、异常与测试设计 |
 | [04-ai-native-interaction-ui-design.md](04-ai-native-interaction-ui-design.md) | AI 原生用户交互与界面设计方案，覆盖用户旅程、核心页面、AI 交互组件、视觉风格和体验验收标准 |
+| [development.md](development.md) | 开发环境构建指南，覆盖 conda/nvm/docker 隔离环境搭建、本地运行、质量门禁 |
+| [deployment.md](deployment.md) | 部署指南，覆盖后端 Docker 部署、前端 GitHub Pages 发布、生产清单与演进路径 |
+| [adr/0001-architecture-and-tooling.md](adr/0001-architecture-and-tooling.md) | 架构与工具链选型决策记录（Monorepo、模块化单体、环境隔离、技术栈） |
 
 ## 第一阶段设计口径
 

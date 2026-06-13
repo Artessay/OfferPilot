@@ -216,3 +216,43 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ---------------------------------------------------------------------------
+# Node / Frontend (apps/web)
+# ---------------------------------------------------------------------------
+node_modules/
+.pnpm-store/
+dist/
+dist-ssr/
+build/
+.vite/
+*.local
+.eslintcache
+coverage/
+playwright-report/
+test-results/
+.turbo/
+
+# Vite/React env files (keep .env.example tracked)
+apps/web/.env
+apps/web/.env.*
+!apps/web/.env.example
+
+# ---------------------------------------------------------------------------
+# Backend (services/api)
+# ---------------------------------------------------------------------------
+services/api/.env
+services/api/.env.*
+!services/api/.env.example
+services/api/.local/
+services/api/storage_data/
+
+# ---------------------------------------------------------------------------
+# Misc / local
+# ---------------------------------------------------------------------------
+.DS_Store
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json

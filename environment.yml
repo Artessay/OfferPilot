@@ -1,0 +1,25 @@
+# ---------------------------------------------------------------------------
+# OfferPilot — Declarative conda environment for the Python backend.
+#
+# This file lets any machine (dev or deploy) recreate the EXACT same isolated
+# Python interpreter, fully separate from the system Python and from any other
+# conda environment on the host.
+#
+# Usage:
+#   conda env create -f environment.yml      # first time
+#   conda env update -f environment.yml      # apply changes
+#   conda activate offerpilot
+#   cd services/api && uv pip install -e ".[dev]"   # install backend deps
+#
+# We intentionally keep conda responsible ONLY for the interpreter + uv.
+# Application dependencies live in services/api/pyproject.toml so they are the
+# single source of truth for both local (uv) and container (Docker) builds.
+# ---------------------------------------------------------------------------
+name: offerpilot
+channels:
+  - defaults
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - uv>=0.10

@@ -1,0 +1,101 @@
+# ===========================================================================
+# OfferPilot — full local/deployment stack.
+#
+#   docker compose up --build        # start everything
+#   docker compose up db redis       # just datastores (run app from host)
+#
+# Variables are read from infra/.env (see .env.example). Service URLs use the
+# compose service names (db, redis) for in-network communication.
+# ===========================================================================
+
+name: offerpilot
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-offerpilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-offerpilot}
+      POSTGRES_DB: ${POSTGRES_DB:-offerpilot}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-offerpilot} -d ${POSTGRES_DB:-offerpilot}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ../services/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-offerpilot}:${POSTGRES_PASSWORD:-offerpilot}@db:5432/${POSTGRES_DB:-offerpilot}
+      REDIS_URL: redis://redis:6379/0
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:5173}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      AI_PROVIDER: ${AI_PROVIDER:-fake}
+      LOG_JSON: ${LOG_JSON:-true}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://localhost:8000/api/v1/health').status==200 else sys.exit(1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: ../services/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: ["arq", "app.workers.main.WorkerSettings"]
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-offerpilot}:${POSTGRES_PASSWORD:-offerpilot}@db:5432/${POSTGRES_DB:-offerpilot}
+      REDIS_URL: redis://redis:6379/0
+      AI_PROVIDER: ${AI_PROVIDER:-fake}
+      LOG_JSON: ${LOG_JSON:-true}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000/api/v1}
+        VITE_BASE_PATH: /
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

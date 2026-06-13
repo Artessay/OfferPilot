@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  backend:
+    name: Backend (lint · types · tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: offerpilot
+          POSTGRES_PASSWORD: offerpilot
+          POSTGRES_DB: offerpilot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U offerpilot -d offerpilot"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      ENVIRONMENT: test
+      DATABASE_URL: postgresql+asyncpg://offerpilot:offerpilot@localhost:5432/offerpilot
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET: ci-secret
+      AI_PROVIDER: fake
+      LOG_JSON: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv pip install --system -e ".[dev,parsing]"
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: Mypy
+        run: mypy app
+
+      - name: Pytest
+        run: pytest --cov=app --cov-report=term-missing
+
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: Frontend (lint · types · tests · build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --filter @offerpilot/web typecheck
+
+      - name: Lint
+        run: pnpm --filter @offerpilot/web lint
+
+      - name: Test
+        run: pnpm --filter @offerpilot/web test
+
+      - name: Build
+        run: pnpm --filter @offerpilot/web build
