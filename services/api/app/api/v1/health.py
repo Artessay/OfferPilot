@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 from pydantic import BaseModel
+from sqlalchemy import text
 
 from app import __version__
+from app.db.session import get_sessionmaker
 from app.shared.config import get_settings
 from app.shared.responses import Envelope, envelope
 
@@ -40,10 +42,15 @@ class ReadyData(BaseModel):
 
 @router.get("/ready", response_model=Envelope[ReadyData], summary="Readiness probe")
 async def ready() -> Envelope[ReadyData]:
-    """Readiness check.
-
-    Dependency checks (database, redis) are wired in once those datastores are
-    introduced in phase P1. For now the service is ready as soon as it boots.
-    """
+    """Readiness check: verifies the database is reachable."""
     checks: dict[str, str] = {}
-    return envelope(ReadyData(ready=True, checks=checks))
+    ready = True
+    try:
+        factory = get_sessionmaker()
+        async with factory() as session:
+            await session.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception:
+        checks["database"] = "unavailable"
+        ready = False
+    return envelope(ReadyData(ready=ready, checks=checks))

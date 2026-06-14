@@ -41,7 +41,7 @@ jobs:
       ENVIRONMENT: test
       DATABASE_URL: postgresql+asyncpg://offerpilot:offerpilot@localhost:5432/offerpilot
       REDIS_URL: redis://localhost:6379/0
-      JWT_SECRET: ci-secret
+      JWT_SECRET: ci-secret-key-at-least-32-bytes-long-0000
       AI_PROVIDER: fake
       LOG_JSON: "false"
     steps:

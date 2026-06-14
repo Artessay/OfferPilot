@@ -1,7 +1,8 @@
 import { NavLink, Outlet } from "react-router-dom";
 
-import { Sparkles } from "lucide-react";
+import { LogOut, Sparkles } from "lucide-react";
 
+import { useAuth } from "@/app/auth/context";
 import { primaryNav, secondaryNav, type NavItem } from "@/app/navigation";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +37,7 @@ function NavSection({ items }: { items: NavItem[] }) {
  * collapse on smaller screens.
  */
 export function AppLayout() {
+  const { user, logout } = useAuth();
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-navy px-4 text-white">
@@ -46,10 +48,16 @@ export function AppLayout() {
           <span className="font-semibold">Offer 捕手</span>
           <span className="hidden text-xs text-white/60 sm:inline">OfferPilot</span>
         </div>
-        <div className="hidden items-center gap-4 text-xs text-white/70 md:flex">
-          <span>目标方向：待设置</span>
-          <span>默认简历：未选择</span>
-          <span>数据源：未授权</span>
+        <div className="flex items-center gap-4 text-xs text-white/70">
+          <span className="hidden md:inline">{user?.nickname ?? user?.email ?? "用户"}</span>
+          <button
+            type="button"
+            onClick={logout}
+            className="flex items-center gap-1 rounded px-2 py-1 hover:bg-white/10 hover:text-white"
+          >
+            <LogOut className="h-3.5 w-3.5" aria-hidden />
+            退出
+          </button>
         </div>
       </header>
 

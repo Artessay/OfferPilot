@@ -45,6 +45,8 @@ services:
       context: ../services/api
       dockerfile: Dockerfile
     restart: unless-stopped
+    # Apply migrations before serving so the schema always matches the code.
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-local}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-offerpilot}:${POSTGRES_PASSWORD:-offerpilot}@db:5432/${POSTGRES_DB:-offerpilot}

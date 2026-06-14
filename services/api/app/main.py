@@ -28,6 +28,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     logger.info("api_startup", environment=settings.environment, version=__version__)
     yield
+    from app.db.session import dispose_engine
+
+    await dispose_engine()
     logger.info("api_shutdown")
 
 

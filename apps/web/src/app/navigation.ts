@@ -23,7 +23,7 @@ export const primaryNav: NavItem[] = [
   { to: "/profile", label: "求职画像", icon: UserRound },
   { to: "/resumes", label: "简历中心", icon: FileText },
   { to: "/jobs", label: "岗位中心", icon: Briefcase },
-  { to: "/recommendations", label: "分层推荐", icon: Layers },
+  { to: "/jobs/discovery", label: "AI 岗位发现", icon: Layers },
   { to: "/reports", label: "匹配报告", icon: ClipboardCheck },
   { to: "/applications", label: "投递跟踪", icon: Send },
 ];

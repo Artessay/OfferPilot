@@ -24,18 +24,19 @@ logger = get_logger(__name__)
 
 
 async def ping(ctx: dict[str, Any]) -> str:
-    """Trivial registered task so the worker can start.
-
-    Real task functions (parse_resume, parse_job, run_match, run_discovery,
-    generate_recommendation, rewrite_resume, ...) are appended to ``FUNCTIONS``
-    in later phases.
-    """
+    """Trivial registered task so the worker can start and be probed."""
     logger.info("worker_ping")
     return "pong"
 
 
 # Task callables registered with the worker. Arq requires at least one.
-FUNCTIONS: Sequence[Any] = (ping,)
+def _load_functions() -> Sequence[Any]:
+    from app.workers.tasks import parse_job_task, parse_resume_task
+
+    return (ping, parse_resume_task, parse_job_task)
+
+
+FUNCTIONS: Sequence[Any] = _load_functions()
 
 
 async def startup(_: dict[str, Any]) -> None:
