@@ -21,9 +21,7 @@ async def test_admin_unauthenticated(client: AsyncClient) -> None:
     assert resp.status_code == 401
 
 
-async def test_prompt_crud_and_activation(
-    client: AsyncClient, admin_auth_headers: dict
-) -> None:
+async def test_prompt_crud_and_activation(client: AsyncClient, admin_auth_headers: dict) -> None:
     # Create v1 (active).
     v1 = await client.post(
         "/api/v1/admin/prompts",
@@ -69,9 +67,7 @@ async def test_prompt_crud_and_activation(
     assert by_version2["v2"]["isActive"] is False
 
     # Delete v2.
-    deleted = await client.delete(
-        f"/api/v1/admin/prompts/{v2_id}", headers=admin_auth_headers
-    )
+    deleted = await client.delete(f"/api/v1/admin/prompts/{v2_id}", headers=admin_auth_headers)
     assert deleted.status_code == 204
 
 
@@ -109,9 +105,7 @@ async def test_public_job_library(client: AsyncClient, admin_auth_headers: dict)
     listing = await client.get("/api/v1/admin/jobs", headers=admin_auth_headers)
     assert listing.json()["data"]["meta"]["total"] == 1
 
-    deleted = await client.delete(
-        f"/api/v1/admin/jobs/{job_id}", headers=admin_auth_headers
-    )
+    deleted = await client.delete(f"/api/v1/admin/jobs/{job_id}", headers=admin_auth_headers)
     assert deleted.status_code == 204
 
 

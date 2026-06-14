@@ -106,9 +106,7 @@ class AuthService:
         if user is None:
             return
         storage = get_storage()
-        resumes = await ResumeRepository(self.session).list_for_user(
-            user_id, offset=0, limit=1000
-        )
+        resumes = await ResumeRepository(self.session).list_for_user(user_id, offset=0, limit=1000)
         for resume in resumes:
             if resume.file_key:
                 await storage.delete(resume.file_key)

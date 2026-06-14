@@ -77,7 +77,5 @@ async def update_application(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="删除投递记录",
 )
-async def delete_application(
-    record_id: uuid.UUID, user: CurrentUser, session: SessionDep
-) -> None:
+async def delete_application(record_id: uuid.UUID, user: CurrentUser, session: SessionDep) -> None:
     await ApplicationService(session).delete(user.id, record_id)

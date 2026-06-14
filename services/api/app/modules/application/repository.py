@@ -13,18 +13,14 @@ from app.modules.application.models import ApplicationRecord
 class ApplicationRepository(BaseRepository[ApplicationRecord]):
     model = ApplicationRecord
 
-    async def get_owned(
-        self, record_id: uuid.UUID, user_id: uuid.UUID
-    ) -> ApplicationRecord | None:
+    async def get_owned(self, record_id: uuid.UUID, user_id: uuid.UUID) -> ApplicationRecord | None:
         stmt = select(ApplicationRecord).where(
             ApplicationRecord.id == record_id, ApplicationRecord.user_id == user_id
         )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_by_job(
-        self, user_id: uuid.UUID, job_id: uuid.UUID
-    ) -> ApplicationRecord | None:
+    async def get_by_job(self, user_id: uuid.UUID, job_id: uuid.UUID) -> ApplicationRecord | None:
         stmt = select(ApplicationRecord).where(
             ApplicationRecord.user_id == user_id, ApplicationRecord.job_id == job_id
         )
