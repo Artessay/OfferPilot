@@ -34,7 +34,7 @@
 | Docker          | ≥ 24（含 compose v2）| `docker compose version`  |
 | curl            | 任意                | `curl --version`          |
 
-> nvm、Node、pnpm、uv 会在下面的步骤中安装，无需提前准备。
+> Node、pnpm、uv 会在下面的步骤中安装，无需提前准备；前端需先安装一次 nvm。
 > （若系统已全局安装 uv 亦可直接复用。）
 
 ---
@@ -56,7 +56,7 @@ make setup        # = setup-api + setup-web
 
 1. `setup-api`：若 `offerpilot` conda 环境不存在则 `conda env create -f environment.yml`
    创建；随后在该环境内用 uv 安装后端依赖（含 dev 工具）。
-2. `setup-web`：加载 nvm（按 `.nvmrc` 选择 Node 22），启用 corepack，`pnpm install`。
+2. `setup-web`：加载 nvm，按 `.nvmrc` 安装/选择 Node 22，启用 corepack 并激活 `pnpm@9.15.0`，随后 `pnpm install`。
 
 > 前提：nvm 已安装。若尚未安装，先执行 3.3 的 nvm 安装步骤一次。
 
@@ -88,6 +88,7 @@ nvm use
 
 # 3) 启用 pnpm（通过 corepack）并安装依赖
 corepack enable
+corepack prepare pnpm@9.15.0 --activate
 cd apps/web
 pnpm install
 cd ../..
@@ -206,7 +207,7 @@ OfferPilot/
 | 现象                                   | 处理                                                                 |
 | -------------------------------------- | -------------------------------------------------------------------- |
 | `conda: command not found`             | 安装 miniconda 并 `source ~/miniconda3/etc/profile.d/conda.sh`。     |
-| `make dev-web` 报找不到 node/pnpm      | 先执行一次 3.3 的 nvm 安装；确认 `~/.nvm` 存在。                      |
+| `make dev-web` 报找不到 node/pnpm      | 先执行一次 3.3 的 nvm 安装；确认 `~/.nvm` 存在，再跑 `make setup-web`。 |
 | 端口被占用（8000/5173/5432/6379）      | 改 `.env` 中对应端口，或停掉占用进程。                               |
 | Docker 构建慢                          | 首次拉取基础镜像较慢，后续有层缓存；依赖未变时不会重装。             |
 | 后端导入报错 `app.xxx`                 | 确认已 `conda activate offerpilot` 且执行过 `uv pip install -e .`。  |

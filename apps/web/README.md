@@ -25,7 +25,7 @@ The frontend uses an **isolated Node toolchain** managed by `nvm` (Node version
 pinned in the repo-root `.nvmrc`). From the repo root:
 
 ```bash
-make setup-web    # nvm use + pnpm install
+make setup-web    # nvm install/use + corepack pnpm + pnpm install
 make dev-web      # Vite dev server on http://localhost:5173
 make test-web     # vitest
 make lint-web     # eslint
@@ -34,8 +34,10 @@ make lint-web     # eslint
 Or manually:
 
 ```bash
+nvm install             # installs Node 22 from .nvmrc if needed
 nvm use                 # selects Node 22 from .nvmrc
-corepack enable         # provides pnpm
+corepack enable
+corepack prepare pnpm@9.15.0 --activate
 cd apps/web
 pnpm install
 pnpm dev

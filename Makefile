@@ -14,9 +14,18 @@ CONDA_ENV  ?= offerpilot
 CONDA_RUN  := conda run -n $(CONDA_ENV) --no-capture-output
 API_DIR    := services/api
 WEB_DIR    := apps/web
+PNPM_VERSION ?= 9.15.0
 
 # Load nvm + the project Node version for any frontend command.
-NVM_LOAD := export NVM_DIR="$$HOME/.nvm"; [ -s "$$NVM_DIR/nvm.sh" ] && . "$$NVM_DIR/nvm.sh"; nvm use >/dev/null 2>&1 || nvm use --lts >/dev/null 2>&1;
+NVM_LOAD := export NVM_DIR="$$HOME/.nvm"; \
+	if [ ! -s "$$NVM_DIR/nvm.sh" ]; then \
+		printf '%s\n' 'nvm is required for frontend commands. Install it with:' '  curl -fsSL -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash' 'Then rerun make setup-web.' >&2; \
+		exit 127; \
+	fi; \
+	. "$$NVM_DIR/nvm.sh"; \
+	nvm use >/dev/null 2>&1 || nvm install; \
+	nvm use >/dev/null;
+PNPM_SETUP := corepack enable >/dev/null && corepack prepare pnpm@$(PNPM_VERSION) --activate >/dev/null;
 
 .DEFAULT_GOAL := help
 
@@ -40,7 +49,7 @@ setup-api: ## Create conda env (if missing) and install backend deps via uv
 
 .PHONY: setup-web
 setup-web: ## Install frontend deps with pnpm (Node pinned by .nvmrc)
-	$(NVM_LOAD) corepack enable >/dev/null 2>&1 || true; cd $(WEB_DIR) && pnpm install
+	$(NVM_LOAD) $(PNPM_SETUP) cd $(WEB_DIR) && pnpm install
 
 # ---------------------------------------------------------------------------
 # Run (local, no Docker)
@@ -55,7 +64,7 @@ dev-worker: ## Run the Arq background worker
 
 .PHONY: dev-web
 dev-web: ## Run the Vite dev server on :5173
-	$(NVM_LOAD) cd $(WEB_DIR) && pnpm dev
+	$(NVM_LOAD) $(PNPM_SETUP) cd $(WEB_DIR) && pnpm dev
 
 # ---------------------------------------------------------------------------
 # Lightweight DEBUG mode (SQLite, no Docker, no Postgres/Redis)
@@ -96,7 +105,7 @@ lint-api: ## Ruff lint + format check (backend)
 
 .PHONY: lint-web
 lint-web: ## ESLint (frontend)
-	$(NVM_LOAD) cd $(WEB_DIR) && pnpm lint
+	$(NVM_LOAD) $(PNPM_SETUP) cd $(WEB_DIR) && pnpm lint
 
 .PHONY: format
 format: ## Auto-format backend code
@@ -105,7 +114,7 @@ format: ## Auto-format backend code
 .PHONY: typecheck
 typecheck: ## mypy (backend) + tsc (frontend)
 	$(CONDA_RUN) bash -c 'cd $(API_DIR) && mypy app'
-	$(NVM_LOAD) cd $(WEB_DIR) && pnpm typecheck
+	$(NVM_LOAD) $(PNPM_SETUP) cd $(WEB_DIR) && pnpm typecheck
 
 .PHONY: test
 test: test-api test-web ## Run all tests
@@ -116,7 +125,7 @@ test-api: ## pytest (backend)
 
 .PHONY: test-web
 test-web: ## vitest (frontend)
-	$(NVM_LOAD) cd $(WEB_DIR) && pnpm test
+	$(NVM_LOAD) $(PNPM_SETUP) cd $(WEB_DIR) && pnpm test
 
 # ---------------------------------------------------------------------------
 # Database migrations (backend)
@@ -146,5 +155,5 @@ docker-logs: ## Tail stack logs
 
 .PHONY: build
 build: ## Build production artifacts (web static + api image)
-	$(NVM_LOAD) cd $(WEB_DIR) && pnpm build
+	$(NVM_LOAD) $(PNPM_SETUP) cd $(WEB_DIR) && pnpm build
 	cd infra && docker compose build api worker
