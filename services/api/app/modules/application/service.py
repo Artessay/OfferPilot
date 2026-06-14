@@ -120,9 +120,7 @@ class ApplicationService:
         record = await self._require_owned(record_id, user_id)
         await self.records.delete(record)
 
-    async def _require_owned(
-        self, record_id: uuid.UUID, user_id: uuid.UUID
-    ) -> ApplicationRecord:
+    async def _require_owned(self, record_id: uuid.UUID, user_id: uuid.UUID) -> ApplicationRecord:
         record = await self.records.get_owned(record_id, user_id)
         if record is None:
             raise NotFoundError("投递记录不存在。")

@@ -53,9 +53,7 @@ async def test_duplicate_application_conflicts(client: AsyncClient, auth_headers
     assert again.json()["error"]["code"] == "CONFLICT"
 
 
-async def test_status_transition_stamps_applied_at(
-    client: AsyncClient, auth_headers: dict
-) -> None:
+async def test_status_transition_stamps_applied_at(client: AsyncClient, auth_headers: dict) -> None:
     job = await _create_job(client, auth_headers)
     created = await client.post(
         "/api/v1/applications", headers=auth_headers, json={"jobId": job["id"]}
@@ -126,9 +124,7 @@ async def test_delete_application(client: AsyncClient, auth_headers: dict) -> No
     assert missing.status_code == 404
 
 
-async def test_application_requires_existing_job(
-    client: AsyncClient, auth_headers: dict
-) -> None:
+async def test_application_requires_existing_job(client: AsyncClient, auth_headers: dict) -> None:
     import uuid
 
     resp = await client.post(

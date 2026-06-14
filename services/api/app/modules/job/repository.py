@@ -102,9 +102,7 @@ class JobAnalysisRepository(BaseRepository[JobAnalysis]):
 class JobFavoriteRepository(BaseRepository[JobFavorite]):
     model = JobFavorite
 
-    async def get_by_user_job(
-        self, user_id: uuid.UUID, job_id: uuid.UUID
-    ) -> JobFavorite | None:
+    async def get_by_user_job(self, user_id: uuid.UUID, job_id: uuid.UUID) -> JobFavorite | None:
         stmt = select(JobFavorite).where(
             JobFavorite.user_id == user_id, JobFavorite.job_id == job_id
         )

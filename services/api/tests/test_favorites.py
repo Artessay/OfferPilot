@@ -10,8 +10,7 @@ JD_TEXT = (
 )
 
 RESUME_BYTES = (
-    "教育背景\n某大学 统计学 本科 2026 届\n\n"
-    "技能\nSQL Python Excel 数据分析\n"
+    "教育背景\n某大学 统计学 本科 2026 届\n\n技能\nSQL Python Excel 数据分析\n"
 ).encode()
 
 
@@ -54,9 +53,7 @@ async def test_favorite_is_idempotent(client: AsyncClient, auth_headers: dict) -
 async def test_favorite_missing_job_404(client: AsyncClient, auth_headers: dict) -> None:
     import uuid
 
-    resp = await client.post(
-        f"/api/v1/jobs/{uuid.uuid4()}/favorite", headers=auth_headers
-    )
+    resp = await client.post(f"/api/v1/jobs/{uuid.uuid4()}/favorite", headers=auth_headers)
     assert resp.status_code == 404
 
 
