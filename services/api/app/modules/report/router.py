@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Query
+from fastapi.responses import Response
 
 from app.modules.report.schemas import (
     RegenerateRequest,
@@ -46,6 +47,27 @@ async def get_report(
 ) -> Envelope[ReportDetail]:
     detail = await ReportService(session).get_report(user.id, report_id)
     return envelope(detail)
+
+
+@router.get(
+    "/{report_id}/export",
+    summary="导出匹配报告（Markdown/JSON）",
+    response_class=Response,
+)
+async def export_report(
+    report_id: uuid.UUID,
+    user: CurrentUser,
+    session: SessionDep,
+    fmt: str = Query(default="md", alias="format", pattern="^(md|json)$"),
+) -> Response:
+    content, media_type, filename = await ReportService(session).export_report(
+        user.id, report_id, fmt
+    )
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.post(

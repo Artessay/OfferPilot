@@ -15,7 +15,7 @@ from app.modules.match.models import MatchTask
 from app.modules.report.models import MatchReport, OptimizationSuggestion
 from app.modules.report.repository import MatchReportRepository, SuggestionRepository
 from app.modules.report.schemas import JobRef, ReportDetail, SuggestionOut
-from app.shared.errors import NotFoundError
+from app.shared.errors import AppError, ErrorCode, NotFoundError
 
 
 class ReportService:
@@ -150,6 +150,24 @@ class ReportService:
         if report is None:
             raise NotFoundError("报告不存在。")
         return report
+
+    async def export_report(
+        self, user_id: uuid.UUID, report_id: uuid.UUID, fmt: str
+    ) -> tuple[str, str, str]:
+        """Export a report as Markdown or JSON.
+
+        Returns ``(content, media_type, filename)``.
+        """
+        detail = await self.get_report(user_id, report_id)
+        short_id = str(detail.id)[:8]
+        if fmt == "json":
+            content = detail.model_dump_json(by_alias=True, indent=2)
+            return content, "application/json", f"report-{short_id}.json"
+        if fmt == "md":
+            from app.modules.report.export import render_markdown
+
+            return render_markdown(detail), "text/markdown", f"report-{short_id}.md"
+        raise AppError(ErrorCode.VALIDATION_ERROR, "仅支持导出 Markdown 或 JSON 格式。")
 
 
 def _split_skills(description: str) -> list[str]:

@@ -100,3 +100,14 @@ async def auth_headers(client: AsyncClient) -> dict[str, str]:
     )
     token = resp.json()["data"]["tokens"]["accessToken"]
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+async def second_auth_headers(client: AsyncClient) -> dict[str, str]:
+    """Register a second, distinct user (for cross-user isolation tests)."""
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={"email": "other@example.com", "password": "pa55word!", "nickname": "其他用户"},
+    )
+    token = resp.json()["data"]["tokens"]["accessToken"]
+    return {"Authorization": f"Bearer {token}"}

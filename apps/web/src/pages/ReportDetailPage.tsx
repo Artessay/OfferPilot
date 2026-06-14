@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { applicationApi, reportApi, rewriteApi } from "@/lib/api/resources";
 import { getErrorMessage } from "@/lib/errors";
+import { downloadBlob } from "@/lib/utils";
 
 export function ReportDetailPage() {
   const { reportId = "" } = useParams();
@@ -43,6 +44,11 @@ export function ReportDetailPage() {
       void queryClient.invalidateQueries({ queryKey: ["applications"] });
     },
     onError: (err) => setTrackMessage(getErrorMessage(err)),
+  });
+
+  const exportMutation = useMutation({
+    mutationFn: (format: "md" | "json") => reportApi.export(reportId, format),
+    onSuccess: ({ blob, filename }) => downloadBlob(blob, filename),
   });
 
   const rewriteMutation = useMutation({
@@ -82,6 +88,20 @@ export function ReportDetailPage() {
           disabled={trackMutation.isPending}
         >
           加入投递跟踪
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => exportMutation.mutate("md")}
+          disabled={exportMutation.isPending}
+        >
+          导出 Markdown
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => exportMutation.mutate("json")}
+          disabled={exportMutation.isPending}
+        >
+          导出 JSON
         </Button>
         {trackMessage ? (
           <span className="text-sm text-muted-foreground">{trackMessage}</span>
