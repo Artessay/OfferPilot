@@ -27,6 +27,16 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     logger = get_logger(__name__)
     settings = get_settings()
     logger.info("api_startup", environment=settings.environment, version=__version__)
+    if settings.auto_create_db:
+        # Lightweight debug mode: build the schema directly from ORM metadata
+        # (no Alembic, no external database). Importing the registry registers
+        # every model on ``Base.metadata``; ``create_all`` is idempotent.
+        from app.db.registry import Base
+        from app.db.session import get_engine
+
+        async with get_engine().begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("db_schema_ensured")
     yield
     from app.db.session import dispose_engine
 

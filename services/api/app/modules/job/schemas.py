@@ -57,3 +57,11 @@ class JobSummary(BaseModel):
 class JobDetail(JobSummary):
     jd_text: str = Field(serialization_alias="jdText")
     analysis: JobAnalysisOut | None = None
+
+
+class JobImportResult(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    created_count: int = Field(serialization_alias="createdCount")
+    items: list[JobSummary]
+    errors: list[str]

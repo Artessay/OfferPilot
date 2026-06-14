@@ -7,13 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
-import { jobApi, matchApi, resumeApi } from "@/lib/api/resources";
+import { jobApi, matchApi, resumeApi, applicationApi } from "@/lib/api/resources";
 import { getErrorMessage } from "@/lib/errors";
 
 export function JobDetailPage() {
   const { jobId = "" } = useParams();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [trackMessage, setTrackMessage] = useState<string | null>(null);
 
   const { data: job, isLoading } = useQuery({
     queryKey: ["jobs", jobId],
@@ -37,6 +38,12 @@ export function JobDetailPage() {
     onError: (err) => setError(getErrorMessage(err)),
   });
 
+  const trackMutation = useMutation({
+    mutationFn: () => applicationApi.create({ jobId }),
+    onSuccess: () => setTrackMessage("已加入投递跟踪。"),
+    onError: (err) => setTrackMessage(getErrorMessage(err)),
+  });
+
   if (isLoading) return <LoadingBlock />;
   if (!job) return <p className="text-sm text-muted-foreground">岗位不存在。</p>;
 
@@ -55,7 +62,17 @@ export function JobDetailPage() {
         <Button onClick={() => matchMutation.mutate()} disabled={matchMutation.isPending}>
           {matchMutation.isPending ? "分析中…" : "用默认简历生成匹配报告"}
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => trackMutation.mutate()}
+          disabled={trackMutation.isPending}
+        >
+          加入投递跟踪
+        </Button>
         {error ? <span className="text-sm text-critical">{error}</span> : null}
+        {trackMessage ? (
+          <span className="text-sm text-muted-foreground">{trackMessage}</span>
+        ) : null}
       </div>
 
       {analysis ? (

@@ -244,8 +244,11 @@ apps/web/.env.*
 services/api/.env
 services/api/.env.*
 !services/api/.env.example
+!services/api/.env.debug
 services/api/.local/
 services/api/storage_data/
+# Lightweight debug mode SQLite database (+ WAL/SHM sidecar files)
+services/api/offerpilot_debug.db*
 
 # ---------------------------------------------------------------------------
 # Misc / local

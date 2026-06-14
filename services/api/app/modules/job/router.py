@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, File, Query, UploadFile, status
 
 from app.modules.job.schemas import (
     JobAnalysisOut,
     JobCreate,
     JobDetail,
+    JobImportResult,
     JobSummary,
     JobUpdate,
 )
@@ -40,6 +41,30 @@ async def create_job(
     service = JobService(session)
     job = await service.create(user.id, payload)
     return envelope(await _detail(service, user.id, job))
+
+
+@router.post(
+    "/import",
+    response_model=Envelope[JobImportResult],
+    status_code=status.HTTP_201_CREATED,
+    summary="批量导入岗位（TXT/CSV/XLSX）",
+)
+async def import_jobs(
+    user: CurrentUser,
+    session: SessionDep,
+    file: UploadFile = File(...),
+) -> Envelope[JobImportResult]:
+    data = await file.read()
+    created, errors = await JobService(session).import_from_file(
+        user.id, file.filename or "jobs.csv", data
+    )
+    return envelope(
+        JobImportResult(
+            created_count=len(created),
+            items=[JobSummary.model_validate(job) for job in created],
+            errors=errors,
+        )
+    )
 
 
 @router.get("", response_model=Envelope[Page[JobSummary]], summary="查询岗位列表")

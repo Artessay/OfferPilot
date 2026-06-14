@@ -11,7 +11,7 @@ import { SuggestionCard } from "@/components/report/SuggestionCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
-import { reportApi, rewriteApi } from "@/lib/api/resources";
+import { applicationApi, reportApi, rewriteApi } from "@/lib/api/resources";
 import { getErrorMessage } from "@/lib/errors";
 
 export function ReportDetailPage() {
@@ -20,6 +20,7 @@ export function ReportDetailPage() {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [trackMessage, setTrackMessage] = useState<string | null>(null);
 
   const { data: report, isLoading } = useQuery({
     queryKey: ["reports", reportId],
@@ -30,6 +31,18 @@ export function ReportDetailPage() {
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       reportApi.updateSuggestion(id, status),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reports", reportId] }),
+  });
+
+  const trackMutation = useMutation({
+    mutationFn: () => {
+      if (!report) throw new Error("报告未加载");
+      return applicationApi.create({ jobId: report.job.jobId, reportId: report.id });
+    },
+    onSuccess: () => {
+      setTrackMessage("已加入投递跟踪。");
+      void queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+    onError: (err) => setTrackMessage(getErrorMessage(err)),
   });
 
   const rewriteMutation = useMutation({
@@ -60,6 +73,19 @@ export function ReportDetailPage() {
             <span className="ml-2 text-sm text-muted-foreground">{report.job.company}</span>
           ) : null}
         </h1>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          variant="outline"
+          onClick={() => trackMutation.mutate()}
+          disabled={trackMutation.isPending}
+        >
+          加入投递跟踪
+        </Button>
+        {trackMessage ? (
+          <span className="text-sm text-muted-foreground">{trackMessage}</span>
+        ) : null}
       </div>
 
       <Card>

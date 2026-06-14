@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { jobApi } from "@/lib/api/resources";
+import type { JobImportResult } from "@/lib/api/types";
 import { getErrorMessage } from "@/lib/errors";
 
 export function JobsPage() {
@@ -18,6 +19,8 @@ export function JobsPage() {
   const { data, isLoading } = useQuery({ queryKey: ["jobs"], queryFn: () => jobApi.list() });
   const [form, setForm] = useState({ title: "", company: "", city: "", jdText: "" });
   const [error, setError] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<JobImportResult | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -34,6 +37,26 @@ export function JobsPage() {
     },
     onError: (err) => setError(getErrorMessage(err)),
   });
+
+  const importMutation = useMutation({
+    mutationFn: (file: File) => jobApi.import(file),
+    onSuccess: (result) => {
+      setImportResult(result);
+      setImportError(null);
+      void queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    },
+    onError: (err) => {
+      setImportError(getErrorMessage(err));
+      setImportResult(null);
+    },
+  });
+
+  const onImport = (event: FormEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (file) importMutation.mutate(file);
+    input.value = "";
+  };
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -93,6 +116,46 @@ export function JobsPage() {
               解析并保存岗位
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>批量导入岗位</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <p className="text-sm text-muted-foreground">
+            支持 CSV、Excel(XLSX) 或 TXT 文件。表格需包含 title、company、city、jd 列；
+            TXT 文件将作为单条岗位导入（首行作为岗位名称）。
+          </p>
+          <label className="w-fit">
+            <input
+              type="file"
+              accept=".csv,.xlsx,.txt,.md"
+              className="hidden"
+              onChange={onImport}
+              disabled={importMutation.isPending}
+            />
+            <span className="inline-flex h-10 cursor-pointer items-center rounded-md border border-border bg-surface px-4 text-sm font-medium text-foreground hover:bg-primary-light">
+              {importMutation.isPending ? "导入中…" : "选择文件导入"}
+            </span>
+          </label>
+          {importError ? <p className="text-sm text-critical">{importError}</p> : null}
+          {importResult ? (
+            <div className="flex flex-col gap-2 rounded-md bg-muted/40 p-3 text-sm">
+              <p className="text-foreground">
+                成功导入 <span className="font-semibold text-primary">{importResult.createdCount}</span>{" "}
+                个岗位。
+              </p>
+              {importResult.errors.length ? (
+                <ul className="flex list-disc flex-col gap-1 pl-5 text-muted-foreground">
+                  {importResult.errors.map((msg, idx) => (
+                    <li key={idx}>{msg}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

@@ -122,6 +122,20 @@ make dev-web          # Vite 开发服务器 → http://localhost:5173
 
 > `make dev-*` 会自动加载对应的 conda / nvm 环境，无需手动 `conda activate` / `nvm use`。
 
+### 方式 C：轻量级 Debug 模式（SQLite，免 Docker，单条命令）
+
+概念验证 / 快速交付阶段，无需 Postgres、Redis、Docker：后端用一个 SQLite 文件存储，
+AI 走确定性的离线 `fake` provider，启动时自动建表并注入演示数据。
+
+```bash
+make setup-api        # 一次性：复用现有 offerpilot conda 环境装好依赖
+make debug            # 起后端 → http://localhost:8000/docs（含演示账号与样例数据）
+```
+
+演示账号：`demo@example.com` / `Demo1234!`。辅助命令：`make seed-debug`（仅灌数据）、
+`make reset-debug`（清空 SQLite 与本地存储，从零开始）。前端仍按需用 `make dev-web` 或线上
+GitHub Pages。完整说明见 [debug-mode.md](debug-mode.md)。
+
 ---
 
 ## 5. 质量门禁（提交前请跑通）

@@ -7,7 +7,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.orchestration import AIOrchestrator
-from app.modules.job.models import JOB_PARSED, Job, JobAnalysis
+from app.modules.job.models import JOB_PARSED, SOURCE_FILE, Job, JobAnalysis
 from app.modules.job.repository import JobAnalysisRepository, JobRepository
 from app.modules.job.schemas import JobCreate, JobUpdate
 from app.shared.documents import normalize_text
@@ -41,6 +41,42 @@ class JobService:
         await self.jobs.add(job)
         await self._analyse(job)
         return job
+
+    async def import_from_file(
+        self, user_id: uuid.UUID, filename: str, data: bytes
+    ) -> tuple[list[Job], list[str]]:
+        """Bulk-import jobs from a TXT/CSV/XLSX upload.
+
+        Returns the successfully created jobs plus human-readable errors for
+        rows that were skipped (missing fields, JD too short, parse failure).
+        """
+        from app.modules.job.importer import parse_jobs_from_file
+
+        parsed = parse_jobs_from_file(filename, data)
+        created: list[Job] = []
+        errors = list(parsed.errors)
+        for index, item in enumerate(parsed.jobs, start=1):
+            jd_text = normalize_text(item.jd_text)
+            if len(jd_text) < MIN_JD_LENGTH:
+                errors.append(f"「{item.title}」岗位描述过短，已跳过。")
+                continue
+            job = Job(
+                user_id=user_id,
+                title=item.title,
+                company=item.company,
+                city=item.city,
+                source_type=SOURCE_FILE,
+                jd_text=jd_text,
+                status=JOB_PARSED,
+            )
+            await self.jobs.add(job)
+            try:
+                await self._analyse(job)
+            except Exception:  # pragma: no cover - defensive per-row guard
+                errors.append(f"「{item.title}」解析失败，已跳过。")
+                continue
+            created.append(job)
+        return created, errors
 
     async def _analyse(self, job: Job) -> JobAnalysis:
         parsed = await self.orchestrator.parse_job(

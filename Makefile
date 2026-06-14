@@ -58,6 +58,33 @@ dev-web: ## Run the Vite dev server on :5173
 	$(NVM_LOAD) cd $(WEB_DIR) && pnpm dev
 
 # ---------------------------------------------------------------------------
+# Lightweight DEBUG mode (SQLite, no Docker, no Postgres/Redis)
+#   For concept-stage demos: one command, offline AI, file-based SQLite.
+#   These values are injected inline so debug mode never touches your real
+#   .env or a Postgres database.
+# ---------------------------------------------------------------------------
+DEBUG_ENV := DATABASE_URL=sqlite+aiosqlite:///./offerpilot_debug.db \
+             AUTO_CREATE_DB=true \
+             AI_PROVIDER=fake \
+             ENVIRONMENT=local \
+             JWT_SECRET=debug-insecure-secret-change-me-0123456789 \
+             LOG_JSON=false
+
+.PHONY: debug
+debug: ## Run a lightweight SQLite backend (no Docker) + demo data on :8000
+	$(CONDA_RUN) bash -c 'cd $(API_DIR) && export $(DEBUG_ENV) && python -m app.scripts.seed_demo && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000'
+
+.PHONY: seed-debug
+seed-debug: ## Seed the demo account + sample data into the SQLite debug DB
+	$(CONDA_RUN) bash -c 'cd $(API_DIR) && export $(DEBUG_ENV) && python -m app.scripts.seed_demo'
+
+.PHONY: reset-debug
+reset-debug: ## Delete the SQLite debug DB + local storage for a fresh start
+	rm -f $(API_DIR)/offerpilot_debug.db $(API_DIR)/offerpilot_debug.db-shm $(API_DIR)/offerpilot_debug.db-wal
+	rm -rf $(API_DIR)/storage_data
+	@echo "debug database and local storage removed"
+
+# ---------------------------------------------------------------------------
 # Quality gates
 # ---------------------------------------------------------------------------
 .PHONY: lint

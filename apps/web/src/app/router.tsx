@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ApplicationsPage } from "@/pages/ApplicationsPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { DiscoveryPage } from "@/pages/DiscoveryPage";
 import { JobDetailPage } from "@/pages/JobDetailPage";
@@ -41,7 +42,7 @@ export const router = createBrowserRouter(
         { path: "reports", element: <ReportsPage /> },
         { path: "reports/:reportId", element: <ReportDetailPage /> },
         { path: "resume-rewrites/:rewriteTaskId", element: <RewritePage /> },
-        { path: "applications", element: <PlaceholderPage title="投递跟踪" /> },
+        { path: "applications", element: <ApplicationsPage /> },
         { path: "settings", element: <PlaceholderPage title="系统设置" /> },
         { path: "*", element: <PlaceholderPage title="页面不存在" /> },
       ],

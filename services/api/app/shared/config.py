@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     # --- Datastores ---
     database_url: str = "postgresql+asyncpg://offerpilot:offerpilot@localhost:5432/offerpilot"
     redis_url: str = "redis://localhost:6379/0"
+    # Create all tables from the ORM metadata on startup instead of running
+    # Alembic migrations. Intended for the lightweight SQLite "debug" mode so
+    # the app boots with zero manual steps. Leave False for Postgres/production.
+    auto_create_db: bool = False
 
     # --- Security / auth ---
     jwt_secret: str = "change-me-in-production"  # dev default; override in prod
