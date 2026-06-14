@@ -130,3 +130,31 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 
   return unwrapEnvelope<T>(payload);
 }
+
+/** Download an attachment response, returning the blob and parsed filename. */
+export async function apiDownload(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<{ blob: Blob; filename: string }> {
+  const { auth = true, headers: initHeaders, query, method } = options;
+  const headers = new Headers(initHeaders);
+  const token = tokenStore.getAccess();
+  if (auth && token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(buildUrl(path, query), { method: method ?? "GET", headers });
+  if (!response.ok) {
+    const payload = await readPayload(response);
+    throw new ApiError(
+      parseErrorMessage(payload) ?? `下载失败：${response.status}`,
+      response.status,
+      payload,
+    );
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const match = /filename="?([^";]+)"?/.exec(disposition);
+  return { blob, filename: match?.[1] ?? "download" };
+}

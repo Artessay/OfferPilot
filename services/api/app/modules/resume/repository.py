@@ -68,6 +68,15 @@ class ResumeVersionRepository(BaseRepository[ResumeVersion]):
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def list_for_resume(self, resume_id: uuid.UUID) -> list[ResumeVersion]:
+        stmt = (
+            select(ResumeVersion)
+            .where(ResumeVersion.resume_id == resume_id)
+            .order_by(ResumeVersion.version_no.desc())
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
     async def next_version_no(self, resume_id: uuid.UUID) -> int:
         stmt = select(func.coalesce(func.max(ResumeVersion.version_no), 0)).where(
             ResumeVersion.resume_id == resume_id

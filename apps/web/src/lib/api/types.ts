@@ -124,6 +124,7 @@ export interface JobSummary {
 export interface JobDetail extends JobSummary {
   jdText: string;
   analysis: JobAnalysis | null;
+  isFavorite: boolean;
 }
 
 export interface MatchTask {
@@ -289,4 +290,61 @@ export interface Recommendation {
   strategy: string;
   summary: string | null;
   tiers: TierGroup[];
+}
+
+// --- Application tracking ---
+export type ApplicationStatus =
+  | "interested"
+  | "applied"
+  | "written_test"
+  | "interview"
+  | "offer"
+  | "rejected"
+  | "closed";
+
+export interface ApplicationRecord {
+  id: ID;
+  job: { jobId: ID; title: string; company: string | null; city: string | null };
+  reportId: ID | null;
+  status: ApplicationStatus;
+  appliedAt: string | null;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// --- Job bulk import ---
+export interface JobImportResult {
+  createdCount: number;
+  items: JobSummary[];
+  errors: string[];
+}
+
+// --- Admin ---
+export interface PromptTemplate {
+  id: ID;
+  name: string;
+  version: string;
+  content: string;
+  schemaVersion: string | null;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface ScoringRule {
+  id: ID;
+  name: string;
+  version: string;
+  weights: Record<string, number>;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface AdminUserSummary {
+  id: ID;
+  email: string | null;
+  nickname: string | null;
+  role: string;
+  accountType: string;
+  createdAt: string;
 }

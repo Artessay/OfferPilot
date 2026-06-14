@@ -82,7 +82,7 @@ class ApplicationService:
         await self.records.add(record)
         return self._to_out(record, job)
 
-    async def list(
+    async def list_records(
         self, user_id: uuid.UUID, *, status: str | None, offset: int, limit: int
     ) -> tuple[list[ApplicationOut], int]:
         if status is not None and status not in ALL_STATUSES:

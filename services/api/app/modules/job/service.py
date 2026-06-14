@@ -7,8 +7,12 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.orchestration import AIOrchestrator
-from app.modules.job.models import JOB_PARSED, SOURCE_FILE, Job, JobAnalysis
-from app.modules.job.repository import JobAnalysisRepository, JobRepository
+from app.modules.job.models import JOB_PARSED, SOURCE_FILE, Job, JobAnalysis, JobFavorite
+from app.modules.job.repository import (
+    JobAnalysisRepository,
+    JobFavoriteRepository,
+    JobRepository,
+)
 from app.modules.job.schemas import JobCreate, JobUpdate
 from app.shared.documents import normalize_text
 from app.shared.errors import AppError, ErrorCode, NotFoundError
@@ -22,6 +26,7 @@ class JobService:
         self.session = session
         self.jobs = JobRepository(session)
         self.analyses = JobAnalysisRepository(session)
+        self.favorites = JobFavoriteRepository(session)
         self.orchestrator = orchestrator or AIOrchestrator()
 
     async def create(self, user_id: uuid.UUID, payload: JobCreate) -> Job:
@@ -55,7 +60,7 @@ class JobService:
         parsed = parse_jobs_from_file(filename, data)
         created: list[Job] = []
         errors = list(parsed.errors)
-        for index, item in enumerate(parsed.jobs, start=1):
+        for item in parsed.jobs:
             jd_text = normalize_text(item.jd_text)
             if len(jd_text) < MIN_JD_LENGTH:
                 errors.append(f"「{item.title}」岗位描述过短，已跳过。")
@@ -154,6 +159,27 @@ class JobService:
     async def delete_job(self, user_id: uuid.UUID, job_id: uuid.UUID) -> None:
         job = await self._require_owned(job_id, user_id)
         await self.jobs.soft_delete(job)
+
+    # --- Favorites (V1.1: 岗位收藏) ---
+    async def add_favorite(self, user_id: uuid.UUID, job_id: uuid.UUID) -> None:
+        # Job must be visible (own or public) before it can be bookmarked.
+        await self.get_job(user_id, job_id)
+        existing = await self.favorites.get_by_user_job(user_id, job_id)
+        if existing is None:
+            await self.favorites.add(JobFavorite(user_id=user_id, job_id=job_id))
+
+    async def remove_favorite(self, user_id: uuid.UUID, job_id: uuid.UUID) -> None:
+        existing = await self.favorites.get_by_user_job(user_id, job_id)
+        if existing is not None:
+            await self.favorites.delete(existing)
+
+    async def list_favorites(
+        self, user_id: uuid.UUID, *, offset: int, limit: int
+    ) -> tuple[list[Job], int]:
+        return await self.favorites.list_jobs(user_id, offset=offset, limit=limit)
+
+    async def favorite_job_ids(self, user_id: uuid.UUID) -> set[uuid.UUID]:
+        return await self.favorites.list_job_ids(user_id)
 
     async def _require_owned(self, job_id: uuid.UUID, user_id: uuid.UUID) -> Job:
         job = await self.jobs.get_owned(job_id, user_id)

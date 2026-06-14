@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { getErrorMessage } from "@/lib/errors";
 export function JobDetailPage() {
   const { jobId = "" } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [trackMessage, setTrackMessage] = useState<string | null>(null);
 
@@ -44,6 +45,12 @@ export function JobDetailPage() {
     onError: (err) => setTrackMessage(getErrorMessage(err)),
   });
 
+  const favoriteMutation = useMutation({
+    mutationFn: (favorite: boolean) =>
+      favorite ? jobApi.removeFavorite(jobId) : jobApi.addFavorite(jobId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["jobs", jobId] }),
+  });
+
   if (isLoading) return <LoadingBlock />;
   if (!job) return <p className="text-sm text-muted-foreground">岗位不存在。</p>;
 
@@ -68,6 +75,13 @@ export function JobDetailPage() {
           disabled={trackMutation.isPending}
         >
           加入投递跟踪
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => favoriteMutation.mutate(job.isFavorite)}
+          disabled={favoriteMutation.isPending}
+        >
+          {job.isFavorite ? "取消收藏" : "收藏岗位"}
         </Button>
         {error ? <span className="text-sm text-critical">{error}</span> : null}
         {trackMessage ? (

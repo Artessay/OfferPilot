@@ -16,6 +16,7 @@ import { ReportsPage } from "@/pages/ReportsPage";
 import { ResumeDetailPage } from "@/pages/ResumeDetailPage";
 import { ResumesPage } from "@/pages/ResumesPage";
 import { RewritePage } from "@/pages/RewritePage";
+import { SettingsPage } from "@/pages/SettingsPage";
 
 // React Router basename must not have a trailing slash ("/foo/" -> "/foo").
 const basename = (import.meta.env.VITE_BASE_PATH ?? "/").replace(/\/$/, "") || "/";
@@ -43,7 +44,7 @@ export const router = createBrowserRouter(
         { path: "reports/:reportId", element: <ReportDetailPage /> },
         { path: "resume-rewrites/:rewriteTaskId", element: <RewritePage /> },
         { path: "applications", element: <ApplicationsPage /> },
-        { path: "settings", element: <PlaceholderPage title="系统设置" /> },
+        { path: "settings", element: <SettingsPage /> },
         { path: "*", element: <PlaceholderPage title="页面不存在" /> },
       ],
     },

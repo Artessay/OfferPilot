@@ -133,6 +133,12 @@ class ResumeService:
             raise NotFoundError("简历尚未解析完成。")
         return version
 
+    async def list_versions(
+        self, user_id: uuid.UUID, resume_id: uuid.UUID
+    ) -> list[ResumeVersion]:
+        await self._require_owned(resume_id, user_id)
+        return await self.versions.list_for_resume(resume_id)
+
     async def set_default(self, user_id: uuid.UUID, resume_id: uuid.UUID) -> Resume:
         resume = await self._require_owned(resume_id, user_id)
         await self.resumes.clear_default(user_id)

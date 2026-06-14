@@ -119,9 +119,8 @@ async def admin_auth_headers(
     sessionmaker: async_sessionmaker[AsyncSession],
 ) -> dict[str, str]:
     """Register a user, promote it to admin, and return its auth headers."""
-    from sqlalchemy import update
-
     from app.modules.auth.models import ROLE_ADMIN, User
+    from sqlalchemy import update
 
     resp = await client.post(
         "/api/v1/auth/register",

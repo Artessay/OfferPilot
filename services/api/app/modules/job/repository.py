@@ -7,7 +7,7 @@ import uuid
 from sqlalchemy import ColumnElement, func, or_, select
 
 from app.db.repository import BaseRepository
-from app.modules.job.models import JOB_DELETED, Job, JobAnalysis
+from app.modules.job.models import JOB_DELETED, Job, JobAnalysis, JobFavorite
 
 
 class JobRepository(BaseRepository[Job]):
@@ -97,3 +97,38 @@ class JobAnalysisRepository(BaseRepository[JobAnalysis]):
         from sqlalchemy import delete
 
         await self.session.execute(delete(JobAnalysis).where(JobAnalysis.job_id == job_id))
+
+
+class JobFavoriteRepository(BaseRepository[JobFavorite]):
+    model = JobFavorite
+
+    async def get_by_user_job(
+        self, user_id: uuid.UUID, job_id: uuid.UUID
+    ) -> JobFavorite | None:
+        stmt = select(JobFavorite).where(
+            JobFavorite.user_id == user_id, JobFavorite.job_id == job_id
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def list_job_ids(self, user_id: uuid.UUID) -> set[uuid.UUID]:
+        stmt = select(JobFavorite.job_id).where(JobFavorite.user_id == user_id)
+        result = await self.session.execute(stmt)
+        return set(result.scalars().all())
+
+    async def list_jobs(
+        self, user_id: uuid.UUID, *, offset: int, limit: int
+    ) -> tuple[list[Job], int]:
+        base = (
+            select(Job)
+            .join(JobFavorite, JobFavorite.job_id == Job.id)
+            .where(JobFavorite.user_id == user_id, Job.deleted_at.is_(None))
+        )
+        total = int(
+            (
+                await self.session.execute(select(func.count()).select_from(base.subquery()))
+            ).scalar_one()
+        )
+        stmt = base.order_by(JobFavorite.created_at.desc()).offset(offset).limit(limit)
+        items = list((await self.session.execute(stmt)).scalars().all())
+        return items, total

@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, SoftDeleteMixin, TimestampMixin, UUIDPrimaryKeyMixin
@@ -46,7 +46,6 @@ class JobAnalysis(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """Structured representation of a JD (responsibilities, requirements, ...)."""
 
     __tablename__ = "job_analyses"
-
     job_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("jobs.id", ondelete="CASCADE"), index=True, nullable=False
     )
@@ -60,3 +59,17 @@ class JobAnalysis(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     embedding: Mapped[list[float] | None] = mapped_column(JSONB, nullable=True)
     model_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
     prompt_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
+class JobFavorite(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A user's bookmark of a job (one row per user+job)."""
+
+    __tablename__ = "job_favorites"
+    __table_args__ = (UniqueConstraint("user_id", "job_id", name="uq_job_favorite_user_job"),)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    job_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("jobs.id", ondelete="CASCADE"), index=True, nullable=False
+    )

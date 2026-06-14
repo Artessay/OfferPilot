@@ -57,6 +57,7 @@ class JobSummary(BaseModel):
 class JobDetail(JobSummary):
     jd_text: str = Field(serialization_alias="jdText")
     analysis: JobAnalysisOut | None = None
+    is_favorite: bool = Field(default=False, serialization_alias="isFavorite")
 
 
 class JobImportResult(BaseModel):

@@ -16,6 +16,7 @@ from app.modules.auth.schemas import (
 from app.modules.auth.service import AuthService
 from app.shared.deps import CurrentUser, SessionDep
 from app.shared.responses import Envelope, envelope
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 

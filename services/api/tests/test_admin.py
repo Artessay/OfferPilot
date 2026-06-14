@@ -42,7 +42,12 @@ async def test_prompt_crud_and_activation(
     v2 = await client.post(
         "/api/v1/admin/prompts",
         headers=admin_auth_headers,
-        json={"name": "resume_parse", "version": "v2", "content": "更详细的解析。", "isActive": True},
+        json={
+            "name": "resume_parse",
+            "version": "v2",
+            "content": "更详细的解析。",
+            "isActive": True,
+        },
     )
     v2_id = v2.json()["data"]["id"]
 

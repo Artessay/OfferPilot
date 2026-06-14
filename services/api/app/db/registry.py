@@ -12,7 +12,7 @@ from app.modules.admin.models import PromptTemplate, ScoringRule
 from app.modules.application.models import ApplicationRecord
 from app.modules.audit.models import AuditLog, ModelCallLog
 from app.modules.auth.models import User
-from app.modules.job.models import Job, JobAnalysis
+from app.modules.job.models import Job, JobAnalysis, JobFavorite
 from app.modules.job_discovery.models import (
     DiscoveredJobCandidate,
     JobDiscoveryTask,
@@ -33,6 +33,7 @@ __all__ = [
     "Job",
     "JobAnalysis",
     "JobDiscoveryTask",
+    "JobFavorite",
     "JobSourceConfig",
     "MatchReport",
     "MatchTask",

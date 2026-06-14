@@ -39,7 +39,7 @@ async def list_applications(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=100, alias="pageSize"),
 ) -> Envelope[Page[ApplicationOut]]:
-    items, total = await ApplicationService(session).list(
+    items, total = await ApplicationService(session).list_records(
         user.id, status=status_filter, offset=(page - 1) * page_size, limit=page_size
     )
     return envelope(paginate(items, page=page, page_size=page_size, total=total))

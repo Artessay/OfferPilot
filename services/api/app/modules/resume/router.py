@@ -110,6 +110,18 @@ async def create_version(
     return envelope(ResumeVersionOut.model_validate(version))
 
 
+@router.get(
+    "/{resume_id}/versions",
+    response_model=Envelope[list[ResumeVersionOut]],
+    summary="查询简历版本列表",
+)
+async def list_versions(
+    resume_id: uuid.UUID, user: CurrentUser, session: SessionDep
+) -> Envelope[list[ResumeVersionOut]]:
+    versions = await ResumeService(session).list_versions(user.id, resume_id)
+    return envelope([ResumeVersionOut.model_validate(v) for v in versions])
+
+
 @router.post(
     "/{resume_id}/default",
     response_model=Envelope[ResumeSummary],

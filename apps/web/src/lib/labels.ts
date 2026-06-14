@@ -36,6 +36,27 @@ export const RISK_LEVEL: Record<string, LabelMeta> = {
   low: { label: "低风险", tone: "success" },
 };
 
+export const APPLICATION_STATUS: Record<string, LabelMeta> = {
+  interested: { label: "意向", tone: "neutral" },
+  applied: { label: "已投递", tone: "primary" },
+  written_test: { label: "笔试", tone: "info" },
+  interview: { label: "面试", tone: "warning" },
+  offer: { label: "Offer", tone: "success" },
+  rejected: { label: "未通过", tone: "critical" },
+  closed: { label: "已关闭", tone: "neutral" },
+};
+
+/** Ordered status pipeline for the application-tracking board. */
+export const APPLICATION_STATUS_ORDER = [
+  "interested",
+  "applied",
+  "written_test",
+  "interview",
+  "offer",
+  "rejected",
+  "closed",
+] as const;
+
 export function formatProbability(value: number): string {
   if (!Number.isFinite(value)) return "-";
   const percent = value > 1 ? value : value * 100;

@@ -1,3 +1,5 @@
+import { useMemo, useState } from "react";
+
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 
@@ -5,12 +7,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { resumeApi } from "@/lib/api/resources";
+import type { ResumeVersion } from "@/lib/api/types";
 
 export function ResumeDetailPage() {
   const { resumeId = "" } = useParams();
   const { data, isLoading } = useQuery({
     queryKey: ["resumes", resumeId],
     queryFn: () => resumeApi.get(resumeId),
+  });
+  const { data: versions } = useQuery({
+    queryKey: ["resumes", resumeId, "versions"],
+    queryFn: () => resumeApi.versions(resumeId),
   });
 
   if (isLoading) return <LoadingBlock />;
@@ -75,6 +82,103 @@ export function ResumeDetailPage() {
       ) : (
         <p className="text-sm text-muted-foreground">简历尚未解析完成。</p>
       )}
+
+      {versions && versions.length >= 2 ? <VersionCompare versions={versions} /> : null}
     </div>
+  );
+}
+
+function VersionCompare({ versions }: { versions: ResumeVersion[] }) {
+  const [leftId, setLeftId] = useState(versions[1]?.id ?? versions[0].id);
+  const [rightId, setRightId] = useState(versions[0].id);
+
+  const left = versions.find((v) => v.id === leftId) ?? versions[0];
+  const right = versions.find((v) => v.id === rightId) ?? versions[0];
+
+  const { added, removed } = useMemo(() => {
+    const leftTags = new Set(left.skillTags);
+    const rightTags = new Set(right.skillTags);
+    return {
+      added: right.skillTags.filter((t) => !leftTags.has(t)),
+      removed: left.skillTags.filter((t) => !rightTags.has(t)),
+    };
+  }, [left, right]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>版本对比</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-muted-foreground">基准版本</label>
+            <select
+              className="rounded-md border border-border bg-background px-2 py-1 text-sm"
+              value={leftId}
+              onChange={(e) => setLeftId(e.target.value)}
+            >
+              {versions.map((v) => (
+                <option key={v.id} value={v.id}>
+                  v{v.versionNo}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-muted-foreground">对比版本</label>
+            <select
+              className="rounded-md border border-border bg-background px-2 py-1 text-sm"
+              value={rightId}
+              onChange={(e) => setRightId(e.target.value)}
+            >
+              {versions.map((v) => (
+                <option key={v.id} value={v.id}>
+                  v{v.versionNo}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">基准摘要 v{left.versionNo}</p>
+            <p className="text-sm text-foreground">{left.summary ?? "—"}</p>
+          </div>
+          <div>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">对比摘要 v{right.versionNo}</p>
+            <p className="text-sm text-foreground">{right.summary ?? "—"}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">新增技能：</span>
+            {added.length ? (
+              added.map((t) => (
+                <Badge key={t} tone="success">
+                  +{t}
+                </Badge>
+              ))
+            ) : (
+              <span className="text-xs text-muted-foreground">无</span>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">移除技能：</span>
+            {removed.length ? (
+              removed.map((t) => (
+                <Badge key={t} tone="critical">
+                  -{t}
+                </Badge>
+              ))
+            ) : (
+              <span className="text-xs text-muted-foreground">无</span>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

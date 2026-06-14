@@ -26,6 +26,8 @@ async def _detail(service: JobService, user_id: uuid.UUID, job: object) -> JobDe
     analysis = await service.analyses.get_for_job(job.id)  # type: ignore[attr-defined]
     if analysis is not None:
         detail.analysis = JobAnalysisOut.model_validate(analysis)
+    favorite = await service.favorites.get_by_user_job(user_id, job.id)  # type: ignore[attr-defined]
+    detail.is_favorite = favorite is not None
     return detail
 
 
@@ -83,6 +85,24 @@ async def list_jobs(
     return envelope(paginate(summaries, page=page, page_size=page_size, total=total))
 
 
+@router.get(
+    "/favorites",
+    response_model=Envelope[Page[JobSummary]],
+    summary="查询收藏岗位",
+)
+async def list_favorites(
+    user: CurrentUser,
+    session: SessionDep,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100, alias="pageSize"),
+) -> Envelope[Page[JobSummary]]:
+    items, total = await JobService(session).list_favorites(
+        user.id, offset=(page - 1) * page_size, limit=page_size
+    )
+    summaries = [JobSummary.model_validate(item) for item in items]
+    return envelope(paginate(summaries, page=page, page_size=page_size, total=total))
+
+
 @router.get("/{job_id}", response_model=Envelope[JobDetail], summary="查询岗位详情")
 async def get_job(job_id: uuid.UUID, user: CurrentUser, session: SessionDep) -> Envelope[JobDetail]:
     service = JobService(session)
@@ -114,3 +134,21 @@ async def get_analysis(
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT, summary="删除岗位")
 async def delete_job(job_id: uuid.UUID, user: CurrentUser, session: SessionDep) -> None:
     await JobService(session).delete_job(user.id, job_id)
+
+
+@router.post(
+    "/{job_id}/favorite",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="收藏岗位",
+)
+async def add_favorite(job_id: uuid.UUID, user: CurrentUser, session: SessionDep) -> None:
+    await JobService(session).add_favorite(user.id, job_id)
+
+
+@router.delete(
+    "/{job_id}/favorite",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="取消收藏岗位",
+)
+async def remove_favorite(job_id: uuid.UUID, user: CurrentUser, session: SessionDep) -> None:
+    await JobService(session).remove_favorite(user.id, job_id)

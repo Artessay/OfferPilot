@@ -38,6 +38,10 @@ function NavSection({ items }: { items: NavItem[] }) {
  */
 export function AppLayout() {
   const { user, logout } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const visibleSecondaryNav = isAdmin
+    ? secondaryNav
+    : secondaryNav.filter((item) => item.to !== "/settings");
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-navy px-4 text-white">
@@ -64,7 +68,7 @@ export function AppLayout() {
       <div className="mx-auto flex w-full max-w-[1440px] flex-1">
         <aside className="hidden w-56 shrink-0 flex-col justify-between border-r border-border bg-surface px-3 py-4 md:flex">
           <NavSection items={primaryNav} />
-          <NavSection items={secondaryNav} />
+          <NavSection items={visibleSecondaryNav} />
         </aside>
 
         <main className="min-w-0 flex-1 px-4 py-6 lg:px-8">

@@ -1,23 +1,30 @@
-import { apiRequest } from "@/lib/api/client";
+import { apiDownload, apiRequest } from "@/lib/api/client";
 import type {
+  AdminUserSummary,
+  ApplicationRecord,
+  ApplicationStatus,
   AuthResult,
   Candidate,
   DiscoveryCreateInput,
   DiscoveryTask,
   JobDetail,
+  JobImportResult,
   JobInput,
   JobSummary,
   MatchTask,
   Page,
   Profile,
   ProfileInput,
+  PromptTemplate,
   Recommendation,
   ReportDetail,
   ReportSummary,
   ResumeDetail,
   ResumeSummary,
+  ResumeVersion,
   RewriteConfirmResult,
   RewriteTask,
+  ScoringRule,
   SkillSuggestions,
   SourceConfig,
   Suggestion,
@@ -105,6 +112,10 @@ export const resumeApi = {
     return apiRequest<ResumeSummary>(`/resumes/${id(resumeId)}/default`, { method: "POST" });
   },
 
+  versions(resumeId: string) {
+    return apiRequest<ResumeVersion[]>(`/resumes/${id(resumeId)}/versions`);
+  },
+
   remove(resumeId: string) {
     return apiRequest<void>(`/resumes/${id(resumeId)}`, { method: "DELETE" });
   },
@@ -121,6 +132,24 @@ export const jobApi = {
 
   get(jobId: string) {
     return apiRequest<JobDetail>(`/jobs/${id(jobId)}`);
+  },
+
+  import(file: File) {
+    const form = new FormData();
+    form.append("file", file);
+    return apiRequest<JobImportResult>("/jobs/import", { method: "POST", body: form });
+  },
+
+  listFavorites(params?: ListParams) {
+    return apiRequest<Page<JobSummary>>("/jobs/favorites", { query: params });
+  },
+
+  addFavorite(jobId: string) {
+    return apiRequest<void>(`/jobs/${id(jobId)}/favorite`, { method: "POST" });
+  },
+
+  removeFavorite(jobId: string) {
+    return apiRequest<void>(`/jobs/${id(jobId)}/favorite`, { method: "DELETE" });
   },
 };
 
@@ -147,6 +176,10 @@ export const reportApi = {
       method: "PATCH",
       body: { status, note },
     });
+  },
+
+  export(reportId: string, format: "md" | "json") {
+    return apiDownload(`/reports/${id(reportId)}/export`, { query: { format } });
   },
 };
 
@@ -198,5 +231,95 @@ export const rewriteApi = {
       method: "POST",
       body: { editedContent, versionSummary },
     });
+  },
+};
+
+type ApplicationListParams = ListParams & {
+  status?: ApplicationStatus;
+};
+
+export const applicationApi = {
+  list(params?: ApplicationListParams) {
+    return apiRequest<Page<ApplicationRecord>>("/applications", { query: params });
+  },
+
+  create(input: {
+    jobId: string;
+    reportId?: string;
+    status?: ApplicationStatus;
+    note?: string;
+  }) {
+    return apiRequest<ApplicationRecord>("/applications", { method: "POST", body: input });
+  },
+
+  update(
+    recordId: string,
+    input: { status?: ApplicationStatus; note?: string; appliedAt?: string },
+  ) {
+    return apiRequest<ApplicationRecord>(`/applications/${id(recordId)}`, {
+      method: "PATCH",
+      body: input,
+    });
+  },
+
+  remove(recordId: string) {
+    return apiRequest<void>(`/applications/${id(recordId)}`, { method: "DELETE" });
+  },
+};
+
+export const adminApi = {
+  listPrompts() {
+    return apiRequest<PromptTemplate[]>("/admin/prompts");
+  },
+  createPrompt(input: {
+    name: string;
+    version: string;
+    content: string;
+    schemaVersion?: string;
+    isActive?: boolean;
+  }) {
+    return apiRequest<PromptTemplate>("/admin/prompts", { method: "POST", body: input });
+  },
+  activatePrompt(promptId: string) {
+    return apiRequest<PromptTemplate>(`/admin/prompts/${id(promptId)}/activate`, {
+      method: "POST",
+    });
+  },
+  deletePrompt(promptId: string) {
+    return apiRequest<void>(`/admin/prompts/${id(promptId)}`, { method: "DELETE" });
+  },
+
+  listRules() {
+    return apiRequest<ScoringRule[]>("/admin/scoring-rules");
+  },
+  createRule(input: {
+    name: string;
+    version: string;
+    weights: Record<string, number>;
+    isActive?: boolean;
+  }) {
+    return apiRequest<ScoringRule>("/admin/scoring-rules", { method: "POST", body: input });
+  },
+  activateRule(ruleId: string) {
+    return apiRequest<ScoringRule>(`/admin/scoring-rules/${id(ruleId)}/activate`, {
+      method: "POST",
+    });
+  },
+  deleteRule(ruleId: string) {
+    return apiRequest<void>(`/admin/scoring-rules/${id(ruleId)}`, { method: "DELETE" });
+  },
+
+  listJobs(params?: ListParams) {
+    return apiRequest<Page<JobSummary>>("/admin/jobs", { query: params });
+  },
+  createJob(input: JobInput) {
+    return apiRequest<JobSummary>("/admin/jobs", { method: "POST", body: input });
+  },
+  deleteJob(jobId: string) {
+    return apiRequest<void>(`/admin/jobs/${id(jobId)}`, { method: "DELETE" });
+  },
+
+  listUsers(params?: ListParams) {
+    return apiRequest<Page<AdminUserSummary>>("/admin/users", { query: params });
   },
 };
