@@ -53,19 +53,21 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: uv pip install --system -e ".[dev,parsing]"
+        run: |
+          uv venv
+          uv pip install -e ".[dev,parsing]"
 
       - name: Ruff lint
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: Ruff format check
-        run: ruff format --check .
+        run: uv run ruff format --check .
 
       - name: Mypy
-        run: mypy app
+        run: uv run mypy app
 
       - name: Pytest
-        run: pytest --cov=app --cov-report=term-missing
+        run: uv run pytest --cov=app --cov-report=term-missing
 
   # ---------------------------------------------------------------------------
   frontend:
