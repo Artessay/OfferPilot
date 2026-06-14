@@ -111,3 +111,26 @@ async def second_auth_headers(client: AsyncClient) -> dict[str, str]:
     )
     token = resp.json()["data"]["tokens"]["accessToken"]
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+async def admin_auth_headers(
+    client: AsyncClient,
+    sessionmaker: async_sessionmaker[AsyncSession],
+) -> dict[str, str]:
+    """Register a user, promote it to admin, and return its auth headers."""
+    from sqlalchemy import update
+
+    from app.modules.auth.models import ROLE_ADMIN, User
+
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={"email": "admin@example.com", "password": "pa55word!", "nickname": "管理员"},
+    )
+    token = resp.json()["data"]["tokens"]["accessToken"]
+    async with sessionmaker() as s:
+        await s.execute(
+            update(User).where(User.email == "admin@example.com").values(role=ROLE_ADMIN)
+        )
+        await s.commit()
+    return {"Authorization": f"Bearer {token}"}

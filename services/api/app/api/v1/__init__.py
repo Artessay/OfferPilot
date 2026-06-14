@@ -10,6 +10,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.api.v1 import health
+from app.modules.admin.router import router as admin_router
 from app.modules.application.router import router as application_router
 from app.modules.auth.router import router as auth_router
 from app.modules.auth.router import users_router
@@ -39,6 +40,4 @@ api_router.include_router(sources_router)
 api_router.include_router(recommendation_router)
 api_router.include_router(rewrite_router)
 api_router.include_router(application_router)
-
-# --- Domain routers (mounted incrementally per phase) -----------------------
-# Admin & application routers are mounted in phase P7.
+api_router.include_router(admin_router)
