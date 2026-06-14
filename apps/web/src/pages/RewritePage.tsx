@@ -30,7 +30,7 @@ export function RewritePage() {
 
   const confirmMutation = useMutation({
     mutationFn: () => rewriteApi.confirm(rewriteTaskId, edited, "AI 改写优化版本"),
-    onSuccess: () => navigate("/resumes"),
+    onSuccess: () => navigate("/app/resumes"),
     onError: (err) => setError(getErrorMessage(err)),
   });
 

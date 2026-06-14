@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { profileApi } from "@/lib/api/resources";
+import { useRequireAuth } from "@/lib/auth/useRequireAuth";
+import { DEMO_PROFILE } from "@/lib/demo-data";
 import type { ProfileInput } from "@/lib/api/types";
 import { getErrorMessage } from "@/lib/errors";
 
@@ -19,12 +21,20 @@ const toList = (value: string): string[] =>
     .filter(Boolean);
 
 export function ProfilePage() {
+  const { requireAuth, isGuest } = useRequireAuth();
   const queryClient = useQueryClient();
-  const { data: profile, isLoading } = useQuery({ queryKey: ["profile"], queryFn: profileApi.get });
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ["profile"],
+    queryFn: profileApi.get,
+    enabled: !isGuest,
+  });
   const { data: skillHints } = useQuery({
     queryKey: ["profile", "skills"],
     queryFn: profileApi.suggestSkills,
+    enabled: !isGuest,
   });
+
+  const resolvedProfile = isGuest ? DEMO_PROFILE : profile;
 
   const [form, setForm] = useState({
     educationLevel: "",
@@ -37,17 +47,17 @@ export function ProfilePage() {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (profile) {
+    if (resolvedProfile) {
       setForm({
-        educationLevel: profile.educationLevel ?? "",
-        graduationYear: profile.graduationYear ? String(profile.graduationYear) : "",
-        targetRoles: profile.targetRoles.join("、"),
-        targetCities: profile.targetCities.join("、"),
-        industries: profile.industries.join("、"),
-        skills: profile.skills.join("、"),
+        educationLevel: resolvedProfile.educationLevel ?? "",
+        graduationYear: resolvedProfile.graduationYear ? String(resolvedProfile.graduationYear) : "",
+        targetRoles: resolvedProfile.targetRoles.join("、"),
+        targetCities: resolvedProfile.targetCities.join("、"),
+        industries: resolvedProfile.industries.join("、"),
+        skills: resolvedProfile.skills.join("、"),
       });
     }
-  }, [profile]);
+  }, [resolvedProfile]);
 
   const mutation = useMutation({
     mutationFn: (input: ProfileInput) => profileApi.update(input),
@@ -58,18 +68,20 @@ export function ProfilePage() {
     onError: (err) => setMessage(getErrorMessage(err)),
   });
 
-  if (isLoading) return <LoadingBlock />;
+  if (!isGuest && isLoading) return <LoadingBlock />;
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
-    mutation.mutate({
-      educationLevel: form.educationLevel || undefined,
-      graduationYear: form.graduationYear ? Number(form.graduationYear) : undefined,
-      targetRoles: toList(form.targetRoles),
-      targetCities: toList(form.targetCities),
-      industries: toList(form.industries),
-      skills: toList(form.skills),
-    });
+    requireAuth(() =>
+      mutation.mutate({
+        educationLevel: form.educationLevel || undefined,
+        graduationYear: form.graduationYear ? Number(form.graduationYear) : undefined,
+        targetRoles: toList(form.targetRoles),
+        targetCities: toList(form.targetCities),
+        industries: toList(form.industries),
+        skills: toList(form.skills),
+      }),
+    );
   };
 
   const addSkill = (skill: string) => {

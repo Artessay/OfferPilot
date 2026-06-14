@@ -12,21 +12,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { applicationApi, reportApi, rewriteApi } from "@/lib/api/resources";
+import { useRequireAuth } from "@/lib/auth/useRequireAuth";
+import { getDemoReport, isDemoId } from "@/lib/demo-data";
 import { getErrorMessage } from "@/lib/errors";
 import { downloadBlob } from "@/lib/utils";
 
 export function ReportDetailPage() {
   const { reportId = "" } = useParams();
+  const isDemo = isDemoId(reportId);
+  const { requireAuth } = useRequireAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [trackMessage, setTrackMessage] = useState<string | null>(null);
 
-  const { data: report, isLoading } = useQuery({
+  const { data: fetchedReport, isLoading } = useQuery({
     queryKey: ["reports", reportId],
     queryFn: () => reportApi.get(reportId),
+    enabled: !isDemo,
   });
+
+  const report = isDemo ? getDemoReport() : fetchedReport;
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
@@ -56,11 +63,11 @@ export function ReportDetailPage() {
       if (!report) throw new Error("报告未加载");
       return rewriteApi.create(report.resumeVersionId, report.id, Array.from(selected));
     },
-    onSuccess: (task) => navigate(`/resume-rewrites/${task.rewriteTaskId}`),
+    onSuccess: (task) => navigate(`/app/resume-rewrites/${task.rewriteTaskId}`),
     onError: (err) => setError(getErrorMessage(err)),
   });
 
-  if (isLoading) return <LoadingBlock />;
+  if (!isDemo && isLoading) return <LoadingBlock />;
   if (!report) return <p className="text-sm text-muted-foreground">报告不存在。</p>;
 
   const toggle = (id: string) => {
@@ -84,21 +91,21 @@ export function ReportDetailPage() {
       <div className="flex flex-wrap items-center gap-3">
         <Button
           variant="outline"
-          onClick={() => trackMutation.mutate()}
+          onClick={() => requireAuth(() => trackMutation.mutate())}
           disabled={trackMutation.isPending}
         >
           加入投递跟踪
         </Button>
         <Button
           variant="outline"
-          onClick={() => exportMutation.mutate("md")}
+          onClick={() => requireAuth(() => exportMutation.mutate("md"))}
           disabled={exportMutation.isPending}
         >
           导出 Markdown
         </Button>
         <Button
           variant="outline"
-          onClick={() => exportMutation.mutate("json")}
+          onClick={() => requireAuth(() => exportMutation.mutate("json"))}
           disabled={exportMutation.isPending}
         >
           导出 JSON
@@ -162,7 +169,7 @@ export function ReportDetailPage() {
           ))}
           <div className="flex items-center gap-3 pt-2">
             <Button
-              onClick={() => rewriteMutation.mutate()}
+              onClick={() => requireAuth(() => rewriteMutation.mutate())}
               disabled={selected.size === 0 || rewriteMutation.isPending}
             >
               基于所选建议生成 AI 改写草稿（{selected.size}）

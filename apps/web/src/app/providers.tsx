@@ -3,8 +3,10 @@ import { type ReactNode, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { AuthProvider } from "@/app/auth/AuthProvider";
+import { AuthModalProvider } from "@/components/auth/AuthModalContext";
+import { LoginModal } from "@/components/auth/LoginModal";
 
-/** Global app providers (server-state cache + auth; more added in later phases). */
+/** Global app providers (server-state cache + auth + login modal). */
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -21,7 +23,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>{children}</AuthProvider>
+      <AuthProvider>
+        <AuthModalProvider>
+          {children}
+          <LoginModal />
+        </AuthModalProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

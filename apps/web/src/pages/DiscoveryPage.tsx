@@ -7,11 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { discoveryApi, recommendationApi } from "@/lib/api/resources";
+import { useRequireAuth } from "@/lib/auth/useRequireAuth";
 import type { Candidate, DiscoveryTask } from "@/lib/api/types";
 import { getErrorMessage } from "@/lib/errors";
 
 export function DiscoveryPage() {
   const navigate = useNavigate();
+  const { requireAuth } = useRequireAuth();
   const [task, setTask] = useState<DiscoveryTask | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export function DiscoveryPage() {
       if (!task) throw new Error("请先发现候选岗位");
       return recommendationApi.createTiered(task.discoveryTaskId);
     },
-    onSuccess: (rec) => navigate(`/recommendations/${rec.recommendationId}`),
+    onSuccess: (rec) => navigate(`/app/recommendations/${rec.recommendationId}`),
     onError: (err) => setError(getErrorMessage(err)),
   });
 
@@ -67,11 +69,11 @@ export function DiscoveryPage() {
       </Card>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={() => discoverMutation.mutate()} disabled={discoverMutation.isPending}>
+        <Button onClick={() => requireAuth(() => discoverMutation.mutate())} disabled={discoverMutation.isPending}>
           {discoverMutation.isPending ? "检索中…" : "开始 AI 岗位发现"}
         </Button>
         {task ? (
-          <Button variant="outline" onClick={() => recommendMutation.mutate()}>
+          <Button variant="outline" onClick={() => requireAuth(() => recommendMutation.mutate())}>
             生成分层推荐组合
           </Button>
         ) : null}

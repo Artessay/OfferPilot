@@ -1,9 +1,11 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
-import { LogOut, Sparkles } from "lucide-react";
+import { LogIn, LogOut, Sparkles } from "lucide-react";
 
 import { useAuth } from "@/app/auth/context";
 import { primaryNav, secondaryNav, type NavItem } from "@/app/navigation";
+import { useAuthModal } from "@/components/auth/AuthModalContext";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 function NavSection({ items }: { items: NavItem[] }) {
@@ -16,9 +18,9 @@ function NavSection({ items }: { items: NavItem[] }) {
           end={end}
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               isActive
-                ? "bg-primary-light text-primary"
+                ? "border-l-2 border-primary bg-primary-light text-primary"
                 : "text-muted-foreground hover:bg-primary-light/60 hover:text-primary",
             )
           }
@@ -33,35 +35,57 @@ function NavSection({ items }: { items: NavItem[] }) {
 
 /**
  * Workspace shell: top context bar + left navigation + main work area +
- * right AI assistant panel (docs/04 §4.3). The assistant panel and left nav
- * collapse on smaller screens.
+ * right AI assistant panel. Supports guest mode (no user).
  */
 export function AppLayout() {
   const { user, logout } = useAuth();
+  const { showLoginModal } = useAuthModal();
+  const navigate = useNavigate();
   const isAdmin = user?.role === "admin";
   const visibleSecondaryNav = isAdmin
     ? secondaryNav
-    : secondaryNav.filter((item) => item.to !== "/settings");
+    : secondaryNav.filter((item) => item.to !== "/app/settings");
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-navy px-4 text-white">
+      {/* Gradient header */}
+      <header className="sticky top-0 z-20 flex h-14 items-center justify-between bg-gradient-to-r from-navy via-[#312E81] to-[#4C1D95] px-4 text-white shadow-sm">
         <div className="flex items-center gap-2">
-          <span className="grid h-7 w-7 place-items-center rounded-md bg-primary font-semibold">
-            O
-          </span>
-          <span className="font-semibold">Offer 捕手</span>
-          <span className="hidden text-xs text-white/60 sm:inline">OfferPilot</span>
-        </div>
-        <div className="flex items-center gap-4 text-xs text-white/70">
-          <span className="hidden md:inline">{user?.nickname ?? user?.email ?? "用户"}</span>
           <button
             type="button"
-            onClick={logout}
-            className="flex items-center gap-1 rounded px-2 py-1 hover:bg-white/10 hover:text-white"
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 hover:opacity-90"
           >
-            <LogOut className="h-3.5 w-3.5" aria-hidden />
-            退出
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent font-bold text-sm">
+              O
+            </span>
+            <span className="font-semibold">Offer 捕手</span>
           </button>
+          <span className="hidden text-xs text-white/60 sm:inline">OfferPilot</span>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-white/80">
+          {user ? (
+            <>
+              <span className="hidden md:inline">{user.nickname ?? user.email ?? "用户"}</span>
+              <button
+                type="button"
+                onClick={logout}
+                className="flex items-center gap-1 rounded px-2 py-1 hover:bg-white/10 hover:text-white"
+              >
+                <LogOut className="h-3.5 w-3.5" aria-hidden />
+                退出
+              </button>
+            </>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => showLoginModal()}
+              className="gap-1 text-white hover:bg-white/10 hover:text-white"
+            >
+              <LogIn className="h-3.5 w-3.5" aria-hidden />
+              登录
+            </Button>
+          )}
         </div>
       </header>
 

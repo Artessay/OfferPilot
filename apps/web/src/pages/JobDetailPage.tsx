@@ -8,10 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { jobApi, matchApi, resumeApi, applicationApi } from "@/lib/api/resources";
+import { useRequireAuth } from "@/lib/auth/useRequireAuth";
+import { getDemoJob, isDemoId } from "@/lib/demo-data";
 import { getErrorMessage } from "@/lib/errors";
 
 export function JobDetailPage() {
   const { jobId = "" } = useParams();
+  const { requireAuth, isGuest } = useRequireAuth();
+  const isDemo = isDemoId(jobId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
@@ -20,8 +24,13 @@ export function JobDetailPage() {
   const { data: job, isLoading } = useQuery({
     queryKey: ["jobs", jobId],
     queryFn: () => jobApi.get(jobId),
+    enabled: !isDemo,
   });
-  const { data: resumes } = useQuery({ queryKey: ["resumes"], queryFn: () => resumeApi.list() });
+  const { data: resumes } = useQuery({
+    queryKey: ["resumes"],
+    queryFn: () => resumeApi.list(),
+    enabled: !isGuest,
+  });
 
   const matchMutation = useMutation({
     mutationFn: async () => {
@@ -34,7 +43,7 @@ export function JobDetailPage() {
       return matchApi.create(versionId, jobId);
     },
     onSuccess: (task) => {
-      if (task.reportId) navigate(`/reports/${task.reportId}`);
+      if (task.reportId) navigate(`/app/reports/${task.reportId}`);
     },
     onError: (err) => setError(getErrorMessage(err)),
   });
@@ -51,38 +60,46 @@ export function JobDetailPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["jobs", jobId] }),
   });
 
-  if (isLoading) return <LoadingBlock />;
-  if (!job) return <p className="text-sm text-muted-foreground">岗位不存在。</p>;
+  const resolvedJob = isDemo ? getDemoJob(jobId) : job;
 
-  const analysis = job.analysis;
+  if (!isDemo && isLoading) return <LoadingBlock />;
+  if (!resolvedJob) return <p className="text-sm text-muted-foreground">岗位不存在。</p>;
+
+  const analysis = resolvedJob.analysis;
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">{job.title}</h1>
+        <h1 className="text-xl font-semibold text-foreground">{resolvedJob.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {[job.company, job.city].filter(Boolean).join(" · ") || "—"}
+          {[resolvedJob.company, resolvedJob.city].filter(Boolean).join(" · ") || "—"}
+          {isDemo ? "  ·  Demo 数据" : ""}
         </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={() => matchMutation.mutate()} disabled={matchMutation.isPending}>
+        <Button
+          onClick={() => requireAuth(() => matchMutation.mutate())}
+          disabled={matchMutation.isPending}
+        >
           {matchMutation.isPending ? "分析中…" : "用默认简历生成匹配报告"}
         </Button>
         <Button
           variant="outline"
-          onClick={() => trackMutation.mutate()}
+          onClick={() => requireAuth(() => trackMutation.mutate())}
           disabled={trackMutation.isPending}
         >
           加入投递跟踪
         </Button>
-        <Button
-          variant="outline"
-          onClick={() => favoriteMutation.mutate(job.isFavorite)}
-          disabled={favoriteMutation.isPending}
-        >
-          {job.isFavorite ? "取消收藏" : "收藏岗位"}
-        </Button>
+        {!isDemo ? (
+          <Button
+            variant="outline"
+            onClick={() => requireAuth(() => favoriteMutation.mutate(resolvedJob.isFavorite))}
+            disabled={favoriteMutation.isPending}
+          >
+            {resolvedJob.isFavorite ? "取消收藏" : "收藏岗位"}
+          </Button>
+        ) : null}
         {error ? <span className="text-sm text-critical">{error}</span> : null}
         {trackMessage ? (
           <span className="text-sm text-muted-foreground">{trackMessage}</span>

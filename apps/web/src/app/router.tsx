@@ -1,12 +1,12 @@
 import { createBrowserRouter } from "react-router-dom";
 
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ApplicationsPage } from "@/pages/ApplicationsPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { DiscoveryPage } from "@/pages/DiscoveryPage";
 import { JobDetailPage } from "@/pages/JobDetailPage";
 import { JobsPage } from "@/pages/JobsPage";
+import { LandingPage } from "@/pages/LandingPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { PlaceholderPage } from "@/pages/PlaceholderPage";
 import { ProfilePage } from "@/pages/ProfilePage";
@@ -23,14 +23,11 @@ const basename = (import.meta.env.VITE_BASE_PATH ?? "/").replace(/\/$/, "") || "
 
 export const router = createBrowserRouter(
   [
+    { path: "/", element: <LandingPage /> },
     { path: "/login", element: <LoginPage /> },
     {
-      path: "/",
-      element: (
-        <AuthGuard>
-          <AppLayout />
-        </AuthGuard>
-      ),
+      path: "/app",
+      element: <AppLayout />,
       children: [
         { index: true, element: <DashboardPage /> },
         { path: "profile", element: <ProfilePage /> },

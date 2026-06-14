@@ -7,31 +7,39 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { resumeApi } from "@/lib/api/resources";
+import { getDemoResume, getDemoResumeVersion, isDemoId } from "@/lib/demo-data";
 import type { ResumeVersion } from "@/lib/api/types";
 
 export function ResumeDetailPage() {
   const { resumeId = "" } = useParams();
+  const isDemo = isDemoId(resumeId);
+
   const { data, isLoading } = useQuery({
     queryKey: ["resumes", resumeId],
     queryFn: () => resumeApi.get(resumeId),
+    enabled: !isDemo,
   });
   const { data: versions } = useQuery({
     queryKey: ["resumes", resumeId, "versions"],
     queryFn: () => resumeApi.versions(resumeId),
+    enabled: !isDemo,
   });
 
-  if (isLoading) return <LoadingBlock />;
-  if (!data) return <p className="text-sm text-muted-foreground">简历不存在。</p>;
+  const resume = isDemo ? getDemoResume() : data;
+  const allVersions = isDemo ? [getDemoResumeVersion()] : versions;
 
-  const version = data.latestVersion;
+  if (!isDemo && isLoading) return <LoadingBlock />;
+  if (!resume) return <p className="text-sm text-muted-foreground">简历不存在。</p>;
+
+  const version = resume.latestVersion;
   const structured = (version?.structuredData ?? {}) as Record<string, string[]>;
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">{data.title}</h1>
+        <h1 className="text-xl font-semibold text-foreground">{resume.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          版本 v{version?.versionNo ?? "-"} · {data.status === "parsed" ? "已解析" : data.status}
+          版本 v{version?.versionNo ?? "-"} · {resume.status === "parsed" ? "已解析" : resume.status}
         </p>
       </div>
 
@@ -83,7 +91,7 @@ export function ResumeDetailPage() {
         <p className="text-sm text-muted-foreground">简历尚未解析完成。</p>
       )}
 
-      {versions && versions.length >= 2 ? <VersionCompare versions={versions} /> : null}
+      {allVersions && allVersions.length >= 2 ? <VersionCompare versions={allVersions} /> : null}
     </div>
   );
 }

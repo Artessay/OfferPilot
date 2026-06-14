@@ -59,7 +59,7 @@ export function ApplicationsPage() {
                     <Card key={record.id}>
                       <CardContent className="flex flex-col gap-2 pt-4">
                         <Link
-                          to={`/jobs/${record.job.jobId}`}
+                          to={`/app/jobs/${record.job.jobId}`}
                           className="text-sm font-medium text-foreground hover:text-primary"
                         >
                           {record.job.title}

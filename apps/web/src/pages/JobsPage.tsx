@@ -11,12 +11,19 @@ import { Label } from "@/components/ui/label";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { jobApi } from "@/lib/api/resources";
+import { useRequireAuth } from "@/lib/auth/useRequireAuth";
+import { DEMO_JOB_SUMMARIES } from "@/lib/demo-data";
 import type { JobImportResult } from "@/lib/api/types";
 import { getErrorMessage } from "@/lib/errors";
 
 export function JobsPage() {
+  const { requireAuth, isGuest } = useRequireAuth();
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["jobs"], queryFn: () => jobApi.list() });
+  const { data, isLoading } = useQuery({
+    queryKey: ["jobs"],
+    queryFn: () => jobApi.list(),
+    enabled: !isGuest,
+  });
   const [form, setForm] = useState({ title: "", company: "", city: "", jdText: "" });
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<JobImportResult | null>(null);
@@ -54,13 +61,13 @@ export function JobsPage() {
   const onImport = (event: FormEvent<HTMLInputElement>) => {
     const input = event.currentTarget;
     const file = input.files?.[0];
-    if (file) importMutation.mutate(file);
+    if (file) requireAuth(() => importMutation.mutate(file));
     input.value = "";
   };
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
-    createMutation.mutate();
+    requireAuth(() => createMutation.mutate());
   };
 
   return (
@@ -161,18 +168,18 @@ export function JobsPage() {
 
       <div>
         <h2 className="mb-3 text-sm font-semibold text-foreground">已导入岗位</h2>
-        {isLoading ? (
+        {!isGuest && isLoading ? (
           <LoadingBlock />
-        ) : !data?.items.length ? (
+        ) : !(isGuest ? DEMO_JOB_SUMMARIES : data?.items)?.length ? (
           <p className="text-sm text-muted-foreground">还没有岗位。</p>
         ) : (
           <div className="flex flex-col gap-2">
-            {data.items.map((job) => (
+            {(isGuest ? DEMO_JOB_SUMMARIES : data!.items).map((job) => (
               <Card key={job.id}>
                 <CardContent className="flex items-center justify-between gap-2 pt-5">
                   <div>
                     <Link
-                      to={`/jobs/${job.id}`}
+                      to={`/app/jobs/${job.id}`}
                       className="font-medium text-foreground hover:text-primary"
                     >
                       {job.title}
@@ -181,9 +188,12 @@ export function JobsPage() {
                       {[job.company, job.city].filter(Boolean).join(" · ") || "—"}
                     </p>
                   </div>
-                  <Badge tone={job.status === "parsed" ? "success" : "neutral"}>
-                    {job.status === "parsed" ? "已解析" : job.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {isGuest ? <Badge tone="info">Demo</Badge> : null}
+                    <Badge tone={job.status === "parsed" ? "success" : "neutral"}>
+                      {job.status === "parsed" ? "已解析" : job.status}
+                    </Badge>
+                  </div>
                 </CardContent>
               </Card>
             ))}

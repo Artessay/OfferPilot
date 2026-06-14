@@ -24,7 +24,7 @@ export function LoginPage() {
     setError(null);
     try {
       await fn();
-      navigate("/", { replace: true });
+      navigate("/app", { replace: true });
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
