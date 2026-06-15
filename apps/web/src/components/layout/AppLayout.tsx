@@ -4,7 +4,7 @@ import { LogIn, LogOut, Sparkles } from "lucide-react";
 
 import { useAuth } from "@/app/auth/context";
 import { primaryNav, secondaryNav, type NavItem } from "@/app/navigation";
-import { useAuthModal } from "@/components/auth/AuthModalContext";
+import { useAuthModal } from "@/components/auth/auth-modal";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

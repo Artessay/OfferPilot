@@ -59,13 +59,13 @@ const DEMO_RESUME_VERSION: ResumeVersion = {
     ],
     education: [
       {
-        school: "上海交通大学",
+        school: "北京大学",
         degree: "硕士",
         major: "应用统计学",
-        period: "2024.09 – 2026.06",
+        period: "2024.09 – 2027.06",
       },
       {
-        school: "南京大学",
+        school: "浙江大学",
         degree: "本科",
         major: "统计学",
         period: "2020.09 – 2024.06",
@@ -75,14 +75,14 @@ const DEMO_RESUME_VERSION: ResumeVersion = {
   },
   skillTags: ["SQL", "Python", "Tableau", "Excel", "A/B测试", "XGBoost", "ETL", "数据可视化"],
   summary:
-    "上海交通大学应用统计学硕士，具备字节跳动与美团的数据分析实习经验，擅长 SQL、Python 与数据可视化。",
+    "北京大学应用统计学硕士，具备字节跳动与美团的数据分析实习经验，擅长 SQL、Python 与数据可视化。",
   createdAt: "2025-11-15T10:00:00Z",
 };
 
 const DEMO_RESUME: ResumeDetail = {
   id: "demo-resume-1",
-  title: "张明_数据分析_上海交大硕士",
-  fileName: "张明_简历_2025.pdf",
+  title: "秋西_数据分析_北京大学硕士",
+  fileName: "秋西_简历_2025.pdf",
   status: "parsed",
   isDefault: true,
   createdAt: "2025-11-15T10:00:00Z",
@@ -235,7 +235,7 @@ const DEMO_DIMENSIONS: DimensionScore[] = [
 const DEMO_EVIDENCE: EvidenceItem[] = [
   { id: "e1", type: "matched_reason", text: "候选人在字节跳动有 A/B 测试与数据分析实习经验，与岗位要求高度匹配" },
   { id: "e2", type: "matched_reason", text: "熟练掌握 SQL、Python、Tableau，覆盖岗位所有硬技能要求" },
-  { id: "e3", type: "matched_reason", text: "上海交通大学应用统计学硕士，学历背景优秀" },
+  { id: "e3", type: "matched_reason", text: "北京大学应用统计学硕士，学历背景优秀" },
   { id: "e4", type: "missing_reason", text: "缺少 Hive 大数据平台实际操作经验" },
   { id: "e5", type: "missing_reason", text: "简历中未体现用户增长建模的实际产出" },
 ];
@@ -326,7 +326,7 @@ export function getDemoReport(): ReportDetail {
 export const DEMO_PROFILE: Profile = {
   id: "demo-profile-1",
   educationLevel: "硕士",
-  school: "上海交通大学",
+  school: "北京大学",
   major: "应用统计学",
   graduationYear: 2026,
   targetRoles: ["数据分析师", "商业分析师"],

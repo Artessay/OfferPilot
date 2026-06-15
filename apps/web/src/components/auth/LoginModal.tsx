@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 
 import { useAuth } from "@/app/auth/context";
-import { useAuthModal } from "@/components/auth/AuthModalContext";
+import { useAuthModal } from "@/components/auth/auth-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

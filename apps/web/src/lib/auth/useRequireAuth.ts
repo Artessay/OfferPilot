@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 
 import { useAuth } from "@/app/auth/context";
-import { useAuthModal } from "@/components/auth/AuthModalContext";
+import { useAuthModal } from "@/components/auth/auth-modal";
 
 /**
  * Returns a wrapper that checks authentication before running an action.

@@ -10,6 +10,22 @@ import { resumeApi } from "@/lib/api/resources";
 import { getDemoResume, getDemoResumeVersion, isDemoId } from "@/lib/demo-data";
 import type { ResumeVersion } from "@/lib/api/types";
 
+const STRUCTURED_FIELD_ORDER = [
+  "company",
+  "role",
+  "name",
+  "school",
+  "degree",
+  "major",
+  "period",
+  "title",
+  "description",
+  "organization",
+  "issuer",
+];
+
+const STRUCTURED_FIELD_SET = new Set<string>(STRUCTURED_FIELD_ORDER);
+
 export function ResumeDetailPage() {
   const { resumeId = "" } = useParams();
   const isDemo = isDemoId(resumeId);
@@ -32,7 +48,7 @@ export function ResumeDetailPage() {
   if (!resume) return <p className="text-sm text-muted-foreground">简历不存在。</p>;
 
   const version = resume.latestVersion;
-  const structured = (version?.structuredData ?? {}) as Record<string, string[]>;
+  const structured = version?.structuredData ?? {};
 
   return (
     <div className="flex flex-col gap-6">
@@ -63,7 +79,7 @@ export function ResumeDetailPage() {
           </Card>
 
           {(["experiences", "projects", "education", "awards"] as const).map((key) => {
-            const items = structured[key] ?? [];
+            const items = getStructuredItems(structured[key]);
             if (!items.length) return null;
             const titles: Record<string, string> = {
               experiences: "实习/工作经历",
@@ -94,6 +110,37 @@ export function ResumeDetailPage() {
       {allVersions && allVersions.length >= 2 ? <VersionCompare versions={allVersions} /> : null}
     </div>
   );
+}
+
+function getStructuredItems(value: unknown): string[] {
+  const items = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+  return items.map(formatStructuredValue).filter(isNonEmptyString);
+}
+
+function formatStructuredValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (!value) return "";
+
+  if (Array.isArray(value)) {
+    return value.map(formatStructuredValue).filter(isNonEmptyString).join("；");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const orderedValues = STRUCTURED_FIELD_ORDER.map((field) => formatStructuredValue(record[field]));
+    const remainingValues = Object.entries(record)
+      .filter(([field]) => !STRUCTURED_FIELD_SET.has(field))
+      .map(([, fieldValue]) => formatStructuredValue(fieldValue));
+
+    return [...orderedValues, ...remainingValues].filter(isNonEmptyString).join(" · ");
+  }
+
+  return "";
+}
+
+function isNonEmptyString(value: string): boolean {
+  return value.length > 0;
 }
 
 function VersionCompare({ versions }: { versions: ResumeVersion[] }) {
