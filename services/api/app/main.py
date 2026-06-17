@@ -19,6 +19,7 @@ from app.shared.config import get_settings
 from app.shared.errors import register_exception_handlers
 from app.shared.logging import configure_logging, get_logger
 from app.shared.middleware import RequestContextMiddleware
+from app.shared.ratelimit import RateLimitMiddleware
 
 
 @asynccontextmanager
@@ -59,7 +60,8 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Order matters: request-id first so it is available to everything else.
+    # Order matters: rate-limit, request-id, then CORS.
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(RequestContextMiddleware)
     app.add_middleware(
         CORSMiddleware,
