@@ -72,11 +72,16 @@ dev-web: ## Run the Vite dev server on :5173
 #   These values are injected inline so debug mode never touches your real
 #   .env or a Postgres database.
 # ---------------------------------------------------------------------------
+# Browser origins allowed to call the debug API (CORS). Override per host, e.g.
+#   make debug DEBUG_CORS_ORIGINS=https://you.github.io,http://localhost:5173
+DEBUG_CORS_ORIGINS ?= https://artessay.github.io,http://localhost:5173,http://localhost:8080
+
 DEBUG_ENV := DATABASE_URL=sqlite+aiosqlite:///./offerpilot_debug.db \
              AUTO_CREATE_DB=true \
              AI_PROVIDER=fake \
              ENVIRONMENT=local \
              JWT_SECRET=debug-insecure-secret-change-me-0123456789 \
+             CORS_ORIGINS=$(DEBUG_CORS_ORIGINS) \
              LOG_JSON=false
 
 .PHONY: debug
