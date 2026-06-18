@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { getErrorMessage } from "@/lib/errors";
 
 export function LoginModal() {
-  const { login, register, guest } = useAuth();
+  const { login, register } = useAuth();
   const { open, hideLoginModal, onSuccess } = useAuthModal();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -121,14 +121,6 @@ export function LoginModal() {
             onClick={() => setMode(mode === "login" ? "register" : "login")}
           >
             {mode === "login" ? "没有账号？去注册" : "已有账号？去登录"}
-          </button>
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-primary"
-            onClick={() => void run(guest)}
-            disabled={busy}
-          >
-            匿名体验
           </button>
         </div>
 
