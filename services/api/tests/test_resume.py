@@ -101,9 +101,7 @@ async def test_cannot_access_others_resume(client: AsyncClient, auth_headers: di
 
 async def test_download_original_file(client: AsyncClient, auth_headers: dict) -> None:
     created = await _upload(client, auth_headers)
-    resp = await client.get(
-        f"/api/v1/resumes/{created['id']}/download", headers=auth_headers
-    )
+    resp = await client.get(f"/api/v1/resumes/{created['id']}/download", headers=auth_headers)
     assert resp.status_code == 200, resp.text
     assert resp.content == RESUME_BYTES
     assert "attachment" in resp.headers["content-disposition"]
@@ -130,9 +128,7 @@ async def test_update_analysis_persists_edits(client: AsyncClient, auth_headers:
     assert version["structuredData"]["experiences"] == ["负责用户留存分析"]
 
     # The edit is persisted and stays on the same version number (in place).
-    analysis = await client.get(
-        f"/api/v1/resumes/{created['id']}/analysis", headers=auth_headers
-    )
+    analysis = await client.get(f"/api/v1/resumes/{created['id']}/analysis", headers=auth_headers)
     assert analysis.json()["data"]["skillTags"] == ["Python", "SQL", "数据分析"]
     assert analysis.json()["data"]["versionNo"] == 1
 
