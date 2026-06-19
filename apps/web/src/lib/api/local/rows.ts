@@ -36,6 +36,9 @@ export interface ResumeRow {
   status: string; // "parsed"
   isDefault: boolean;
   createdAt: string;
+  fileType?: string; // original upload extension without dot, e.g. "pdf"
+  originalFile?: Blob; // original uploaded bytes, for re-download
+  isSeed?: boolean; // true for the seeded demo resume (protected from deletion)
 }
 
 export interface ResumeVersionRow {

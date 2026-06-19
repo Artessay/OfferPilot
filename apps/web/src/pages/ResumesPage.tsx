@@ -8,7 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { resumeApi } from "@/lib/api/resources";
 import { useRequireAuth } from "@/lib/auth/useRequireAuth";
+import { IS_LOCAL_MODE } from "@/lib/config";
 import { DEMO_RESUME_SUMMARY } from "@/lib/demo-data";
+import { downloadBlob } from "@/lib/utils";
 
 export function ResumesPage() {
   const { requireAuth, isGuest } = useRequireAuth();
@@ -32,6 +34,12 @@ export function ResumesPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => resumeApi.remove(id),
     onSuccess: invalidate,
+  });
+  const downloadMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { blob, filename } = await resumeApi.download(id);
+      downloadBlob(blob, filename);
+    },
   });
 
   const items = isGuest ? [DEMO_RESUME_SUMMARY] : (data?.items ?? []);
@@ -81,11 +89,20 @@ export function ResumesPage() {
                       {resume.status === "parsed" ? "已解析" : resume.status}
                     </Badge>
                     {isGuest ? <Badge tone="info">Demo</Badge> : null}
+                    {IS_LOCAL_MODE && resume.isSeed ? <Badge tone="info">演示</Badge> : null}
                   </div>
                   <span className="text-xs text-muted-foreground">{resume.fileName}</span>
                 </div>
                 {!isGuest ? (
                   <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => downloadMutation.mutate(resume.id)}
+                      disabled={downloadMutation.isPending}
+                    >
+                      下载原件
+                    </Button>
                     {!resume.isDefault ? (
                       <Button
                         size="sm"
@@ -95,17 +112,19 @@ export function ResumesPage() {
                         设为默认
                       </Button>
                     ) : null}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        if (confirm("删除后历史报告可能无法追溯，确认删除？")) {
-                          deleteMutation.mutate(resume.id);
-                        }
-                      }}
-                    >
-                      删除
-                    </Button>
+                    {IS_LOCAL_MODE && resume.isSeed ? null : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          if (confirm("删除后历史报告可能无法追溯，确认删除？")) {
+                            deleteMutation.mutate(resume.id);
+                          }
+                        }}
+                      >
+                        删除
+                      </Button>
+                    )}
                   </div>
                 ) : null}
               </CardContent>

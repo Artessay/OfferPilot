@@ -168,6 +168,54 @@ describe("local DataClient end-to-end (IndexedDB)", () => {
     expect(detail.latestVersion?.skillTags).toContain("Python");
   });
 
+  it("edits a resume's extracted fields and persists them", async () => {
+    const updated = await resumeApi.update(resumeId, {
+      skillTags: ["Python", "SQL", "数据分析"],
+      structuredData: {
+        experiences: ["负责 A/B 测试分析，周报被业务线采纳"],
+        projects: ["用户分群与流失预测模型"],
+        education: ["北京大学 应用统计学 硕士"],
+        awards: [],
+      },
+    });
+    expect(updated.latestVersion?.skillTags).toEqual(["Python", "SQL", "数据分析"]);
+
+    const reloaded = await resumeApi.get(resumeId);
+    const sd = reloaded.latestVersion?.structuredData as Record<string, unknown>;
+    expect(sd.experiences).toEqual(["负责 A/B 测试分析，周报被业务线采纳"]);
+    expect(reloaded.latestVersion?.skillTags).toContain("数据分析");
+  });
+
+  it("downloads the seeded resume as a text fallback", async () => {
+    const { blob, filename } = await resumeApi.download(resumeId);
+    expect(filename).toMatch(/\.txt$/);
+    expect(blob.size).toBeGreaterThan(0);
+  });
+
+  it("downloads an uploaded resume's original file", async () => {
+    const file = new File(["技能\nPython SQL\n项目经历\n负责数据分析平台建设。"], "原件.md", {
+      type: "text/markdown",
+    });
+    const uploaded = await resumeApi.upload(file, "我的原件", false);
+
+    const { blob, filename } = await resumeApi.download(uploaded.id);
+    // The original-file path serves the stored fileName ("原件.md"); the text
+    // fallback would instead produce "我的原件.txt", so this proves the
+    // uploaded bytes were persisted and served back.
+    expect(filename).toBe("原件.md");
+    expect(blob).toBeTruthy();
+  });
+
+  it("blocks deletion of the seeded demo resume but allows uploaded ones", async () => {
+    const seed = (await resumeApi.list()).items.find((r) => r.isSeed);
+    expect(seed).toBeTruthy();
+    await expect(resumeApi.remove(seed!.id)).rejects.toThrow();
+
+    const file = new File(["技能\nPython"], "待删除.txt", { type: "text/plain" });
+    const uploaded = await resumeApi.upload(file, "待删除", false);
+    await expect(resumeApi.remove(uploaded.id)).resolves.toBeUndefined();
+  });
+
   it("round-trips data through backup export / clear / import", async () => {
     const before = (await resumeApi.list()).items.length;
     const backup = await exportAllData();

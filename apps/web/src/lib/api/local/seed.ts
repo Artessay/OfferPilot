@@ -5,7 +5,7 @@
  * the ported AI so matches/reports/recommendations work against it.
  */
 import { buildJobAnalysisData, buildResumeVersionData } from "@/lib/api/local/compute";
-import { getDb } from "@/lib/api/local/db";
+import { getDb, SEED_RESUME_FILE_NAME } from "@/lib/api/local/db";
 import { nowIso, uuid } from "@/lib/api/local/helpers";
 import type { JobDetail } from "@/lib/api/types";
 import { DEMO_JOB_SUMMARIES, DEMO_PROFILE, getDemoJob } from "@/lib/demo-data";
@@ -74,10 +74,12 @@ export async function seedInitialData(userId: string): Promise<void> {
     id: resumeId,
     userId,
     title: "秋西_数据分析_北京大学硕士",
-    fileName: "示例简历.txt",
+    fileName: SEED_RESUME_FILE_NAME,
     status: "parsed",
     isDefault: true,
     createdAt: ts,
+    fileType: "txt",
+    isSeed: true,
   });
   const version = buildResumeVersionData(SEED_RESUME_TEXT);
   await db.put("resume_versions", {

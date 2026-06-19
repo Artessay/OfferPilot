@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { applicationApi } from "@/lib/api/resources";
@@ -40,9 +41,19 @@ export function ApplicationsPage() {
       {isLoading ? (
         <LoadingBlock />
       ) : !data?.items.length ? (
-        <p className="text-sm text-muted-foreground">
-          还没有投递记录，去岗位详情或匹配报告点击「加入投递跟踪」吧。
-        </p>
+        <Card>
+          <CardContent className="flex flex-col items-start gap-3 py-6">
+            <div>
+              <p className="text-sm font-medium text-foreground">还没有投递记录</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                前往岗位列表挑选心仪岗位，进入岗位详情或匹配报告点击「加入投递跟踪」即可开始记录投递进展。
+              </p>
+            </div>
+            <Link to="/app/jobs" className={buttonVariants({ variant: "primary", size: "sm" })}>
+              去岗位列表
+            </Link>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {APPLICATION_STATUS_ORDER.map((status) => {

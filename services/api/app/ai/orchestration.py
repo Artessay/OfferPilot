@@ -45,6 +45,24 @@ class AIOrchestrator:
         result["prompt_version"] = JOB_PARSE_VERSION
         return result
 
+    async def embed_resume_fields(
+        self,
+        *,
+        structured_data: dict[str, Any],
+        skill_tags: list[str],
+        summary: str | None,
+    ) -> list[float]:
+        """Recompute a resume version embedding after its fields were edited."""
+        source = self._resume_embedding_source(
+            {
+                "structured_data": structured_data,
+                "skill_tags": skill_tags,
+                "summary": summary or "",
+            }
+        )
+        [embedding] = await self.provider.embed([source])
+        return embedding
+
     @staticmethod
     def _resume_embedding_source(parsed: dict[str, Any]) -> str:
         sd = parsed["structured_data"]

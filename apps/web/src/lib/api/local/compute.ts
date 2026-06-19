@@ -40,6 +40,25 @@ export function buildResumeVersionData(text: string): ResumeVersionData {
   return { ...parsed, embedding: deterministicEmbedding(resumeEmbeddingSource(parsed)) };
 }
 
+/**
+ * Recompute a resume version embedding after its structured data / skill tags
+ * were edited by the user, mirroring `resumeEmbeddingSource` so matching stays
+ * consistent with freshly parsed versions.
+ */
+export function recomputeResumeEmbedding(
+  structuredData: Record<string, unknown>,
+  skillTags: string[],
+  summary: string | null,
+): number[] {
+  const parts = [
+    skillTags.join(" "),
+    ((structuredData.experiences as string[]) ?? []).join(" "),
+    ((structuredData.projects as string[]) ?? []).join(" "),
+  ];
+  const source = parts.filter(Boolean).join("\n") || summary || "";
+  return deterministicEmbedding(source);
+}
+
 export interface JobAnalysisData {
   responsibilities: string[];
   requirements: string[];

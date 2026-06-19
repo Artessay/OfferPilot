@@ -22,6 +22,7 @@ import type {
   ResumeDetail,
   ResumeSummary,
   ResumeVersion,
+  ResumeVersionUpdateInput,
   RewriteConfirmResult,
   RewriteTask,
   ScoringRule,
@@ -114,6 +115,17 @@ export const resumeApi = {
 
   versions(resumeId: string) {
     return apiRequest<ResumeVersion[]>(`/resumes/${id(resumeId)}/versions`);
+  },
+
+  update(resumeId: string, input: ResumeVersionUpdateInput) {
+    return apiRequest<ResumeDetail>(`/resumes/${id(resumeId)}/analysis`, {
+      method: "PATCH",
+      body: input,
+    });
+  },
+
+  download(resumeId: string) {
+    return apiDownload(`/resumes/${id(resumeId)}/download`);
   },
 
   remove(resumeId: string) {

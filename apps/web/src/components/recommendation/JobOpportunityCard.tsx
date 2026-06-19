@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 import { Badge } from "@/components/ui/badge";
 import type { TierItem } from "@/lib/api/types";
 import { RISK_LEVEL, formatProbability } from "@/lib/labels";
@@ -9,7 +11,12 @@ export function JobOpportunityCard({ item }: { item: TierItem }) {
     <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="font-medium text-foreground">{item.title}</p>
+          <Link
+            to={`/app/jobs/${item.jobId}`}
+            className="font-medium text-foreground hover:text-primary"
+          >
+            {item.title}
+          </Link>
           {item.company ? (
             <p className="text-xs text-muted-foreground">{item.company}</p>
           ) : null}

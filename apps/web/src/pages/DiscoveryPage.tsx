@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -91,7 +91,12 @@ export function DiscoveryPage() {
           <Card key={c.id}>
             <CardContent className="flex items-center justify-between gap-2 pt-5">
               <div>
-                <p className="font-medium text-foreground">{c.title}</p>
+                <Link
+                  to={`/app/jobs/${c.jobId}`}
+                  className="font-medium text-foreground hover:text-primary"
+                >
+                  {c.title}
+                </Link>
                 <p className="text-xs text-muted-foreground">
                   {[c.company, c.city].filter(Boolean).join(" · ") || "—"} · {c.initialReason}
                 </p>

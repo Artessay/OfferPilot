@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +18,15 @@ from app.modules.resume.repository import ResumeRepository, ResumeVersionReposit
 from app.shared.documents import extract_text, normalize_text, validate_upload
 from app.shared.errors import AppError, ErrorCode, NotFoundError
 from app.shared.storage import build_object_key, get_storage
+
+# Maps stored file_type (extension without dot) to a download media type.
+_RESUME_MEDIA_TYPES = {
+    "pdf": "application/pdf",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "doc": "application/msword",
+    "txt": "text/plain; charset=utf-8",
+    "md": "text/markdown; charset=utf-8",
+}
 
 
 class ResumeService:
@@ -149,6 +159,52 @@ class ResumeService:
         if resume.file_key:
             await get_storage().delete(resume.file_key)
         await self.resumes.soft_delete(resume)
+
+    async def download_original(
+        self, user_id: uuid.UUID, resume_id: uuid.UUID
+    ) -> tuple[bytes, str, str]:
+        """Return ``(content, media_type, filename)`` for the original upload."""
+        resume = await self._require_owned(resume_id, user_id)
+        if not resume.file_key:
+            raise NotFoundError("原始简历文件不存在。")
+        try:
+            data = await get_storage().get(resume.file_key)
+        except FileNotFoundError as exc:
+            raise NotFoundError("原始简历文件不存在。") from exc
+        media_type = _RESUME_MEDIA_TYPES.get(
+            (resume.file_type or "").lower(), "application/octet-stream"
+        )
+        filename = resume.file_name or f"resume.{resume.file_type or 'bin'}"
+        return data, media_type, filename
+
+    async def update_analysis(
+        self,
+        *,
+        user_id: uuid.UUID,
+        resume_id: uuid.UUID,
+        fields_set: set[str],
+        structured_data: dict[str, Any] | None,
+        skill_tags: list[str] | None,
+        summary: str | None,
+    ) -> ResumeVersion:
+        """Apply manual edits to the latest parsed version and re-embed it."""
+        await self._require_owned(resume_id, user_id)
+        version = await self.versions.latest_for_resume(resume_id)
+        if version is None:
+            raise NotFoundError("简历尚未解析完成。")
+        if "structured_data" in fields_set and structured_data is not None:
+            version.structured_data = structured_data
+        if "skill_tags" in fields_set and skill_tags is not None:
+            version.skill_tags = skill_tags
+        if "summary" in fields_set:
+            version.summary = summary
+        version.embedding = await self.orchestrator.embed_resume_fields(
+            structured_data=version.structured_data,
+            skill_tags=version.skill_tags,
+            summary=version.summary,
+        )
+        await self.versions.add(version)
+        return version
 
     async def _require_owned(self, resume_id: uuid.UUID, user_id: uuid.UUID) -> Resume:
         resume = await self.resumes.get_owned(resume_id, user_id)

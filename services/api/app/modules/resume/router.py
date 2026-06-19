@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import uuid
+from urllib.parse import quote
 
 from fastapi import APIRouter, File, Form, Query, UploadFile, status
+from fastapi.responses import Response
 
 from app.modules.resume.schemas import (
     ResumeDetail,
     ResumeSummary,
     ResumeVersionCreate,
     ResumeVersionOut,
+    ResumeVersionUpdate,
 )
 from app.modules.resume.service import ResumeService
 from app.shared.deps import CurrentUser, SessionDep
@@ -24,6 +27,14 @@ def _detail(resume: object, version: object | None) -> ResumeDetail:
     if version is not None:
         detail.latest_version = ResumeVersionOut.model_validate(version)
     return detail
+
+
+def _content_disposition(filename: str) -> str:
+    """Build a Content-Disposition value that is safe for non-ASCII filenames."""
+    ascii_fallback = filename.encode("ascii", "ignore").decode().strip()
+    if not ascii_fallback or ascii_fallback.startswith("."):
+        ascii_fallback = "resume"
+    return f"attachment; filename=\"{ascii_fallback}\"; filename*=UTF-8''{quote(filename)}"
 
 
 @router.post(
@@ -86,6 +97,46 @@ async def get_analysis(
 ) -> Envelope[ResumeVersionOut]:
     version = await ResumeService(session).latest_version(user.id, resume_id)
     return envelope(ResumeVersionOut.model_validate(version))
+
+
+@router.patch(
+    "/{resume_id}/analysis",
+    response_model=Envelope[ResumeDetail],
+    summary="更新简历解析结果",
+)
+async def update_analysis(
+    resume_id: uuid.UUID,
+    payload: ResumeVersionUpdate,
+    user: CurrentUser,
+    session: SessionDep,
+) -> Envelope[ResumeDetail]:
+    service = ResumeService(session)
+    version = await service.update_analysis(
+        user_id=user.id,
+        resume_id=resume_id,
+        fields_set=payload.model_fields_set,
+        structured_data=payload.structured_data,
+        skill_tags=payload.skill_tags,
+        summary=payload.summary,
+    )
+    resume = await service.get_resume(user.id, resume_id)
+    return envelope(_detail(resume, version))
+
+
+@router.get(
+    "/{resume_id}/download",
+    summary="下载简历原件",
+    response_class=Response,
+)
+async def download_resume(resume_id: uuid.UUID, user: CurrentUser, session: SessionDep) -> Response:
+    content, media_type, filename = await ResumeService(session).download_original(
+        user.id, resume_id
+    )
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": _content_disposition(filename)},
+    )
 
 
 @router.post(

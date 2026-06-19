@@ -85,10 +85,18 @@ export interface ResumeSummary {
   status: string;
   isDefault: boolean;
   createdAt: string;
+  /** True for the seeded demo resume in local mode (protected from deletion). */
+  isSeed?: boolean;
 }
 
 export interface ResumeDetail extends ResumeSummary {
   latestVersion: ResumeVersion | null;
+}
+
+export interface ResumeVersionUpdateInput {
+  structuredData?: Record<string, unknown>;
+  skillTags?: string[];
+  summary?: string | null;
 }
 
 export interface JobInput {

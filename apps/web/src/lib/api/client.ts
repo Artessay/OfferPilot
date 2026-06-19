@@ -155,6 +155,20 @@ export async function apiDownload(
 
   const blob = await response.blob();
   const disposition = response.headers.get("Content-Disposition") ?? "";
-  const match = /filename="?([^";]+)"?/.exec(disposition);
-  return { blob, filename: match?.[1] ?? "download" };
+  return { blob, filename: parseContentDispositionFilename(disposition) ?? "download" };
+}
+
+/** Extract a filename from a Content-Disposition header, preferring RFC 5987. */
+function parseContentDispositionFilename(disposition: string): string | null {
+  // RFC 5987 `filename*=UTF-8''...` carries percent-encoded non-ASCII names.
+  const star = /filename\*=(?:UTF-8'')?([^;]+)/i.exec(disposition);
+  if (star?.[1]) {
+    try {
+      return decodeURIComponent(star[1].trim().replace(/^"|"$/g, ""));
+    } catch {
+      // Malformed encoding — fall back to the plain filename below.
+    }
+  }
+  const plain = /filename="?([^";]+)"?/i.exec(disposition);
+  return plain?.[1] ?? null;
 }

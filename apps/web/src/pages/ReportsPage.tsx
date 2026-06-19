@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { useAuth } from "@/app/auth/context";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { reportApi } from "@/lib/api/resources";
@@ -35,7 +36,22 @@ export function ReportsPage() {
       {!isGuest && isLoading ? (
         <LoadingBlock />
       ) : !items.length ? (
-        <p className="text-sm text-muted-foreground">还没有报告，去岗位详情生成一份吧。</p>
+        <Card>
+          <CardContent className="flex flex-col items-start gap-3 py-6">
+            <div>
+              <p className="text-sm font-medium text-foreground">还没有匹配报告</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                前往「AI 岗位发现」生成分层推荐组合，挑选心仪岗位后即可生成匹配报告。
+              </p>
+            </div>
+            <Link
+              to="/app/jobs/discovery"
+              className={buttonVariants({ variant: "primary", size: "sm" })}
+            >
+              去 AI 岗位发现
+            </Link>
+          </CardContent>
+        </Card>
       ) : (
         <div className="flex flex-col gap-2">
           {items.map((report) => {

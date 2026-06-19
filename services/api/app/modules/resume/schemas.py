@@ -44,3 +44,13 @@ class ResumeVersionCreate(BaseModel):
     summary: str | None = None
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class ResumeVersionUpdate(BaseModel):
+    """Manual edits to a parsed resume version (only set fields are applied)."""
+
+    structured_data: dict[str, Any] | None = Field(default=None, alias="structuredData")
+    skill_tags: list[str] | None = Field(default=None, alias="skillTags")
+    summary: str | None = None
+
+    model_config = ConfigDict(populate_by_name=True)

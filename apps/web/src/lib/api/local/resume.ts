@@ -1,17 +1,29 @@
 /** Local-mode resume API: upload, parse, versioning, default, deletion. */
 import type { ResumeApi } from "@/lib/api/contract";
-import { buildResumeVersionData } from "@/lib/api/local/compute";
+import { buildResumeVersionData, recomputeResumeEmbedding } from "@/lib/api/local/compute";
 import { getDb } from "@/lib/api/local/db";
 import { extractText, validateUpload } from "@/lib/api/local/documents";
-import { byCreatedDesc, currentUserId, notFound, nowIso, paginate, uuid } from "@/lib/api/local/helpers";
+import { byCreatedDesc, currentUserId, fail, notFound, nowIso, paginate, uuid } from "@/lib/api/local/helpers";
 import { toResumeDetail, toResumeSummary, toResumeVersion } from "@/lib/api/local/mappers";
 import type { ResumeRow, ResumeVersionRow } from "@/lib/api/local/rows";
 import type { IDBPDatabase } from "idb";
 import type { OfferPilotDB } from "@/lib/api/local/db";
 import type { ListParams } from "@/lib/api/contract";
-import type { Page, ResumeDetail, ResumeSummary, ResumeVersion } from "@/lib/api/types";
+import type {
+  Page,
+  ResumeDetail,
+  ResumeSummary,
+  ResumeVersion,
+  ResumeVersionUpdateInput,
+} from "@/lib/api/types";
 
 type DB = IDBPDatabase<OfferPilotDB>;
+
+/** Extract a lowercase file extension (without the dot) from a filename. */
+function extensionOf(name: string): string {
+  const dot = name.lastIndexOf(".");
+  return dot >= 0 ? name.slice(dot + 1).toLowerCase() : "";
+}
 
 async function latestVersion(db: DB, resumeId: string): Promise<ResumeVersionRow | undefined> {
   const versions = await db.getAllFromIndex("resume_versions", "byResume", resumeId);
@@ -65,7 +77,8 @@ export const localResumeApi: ResumeApi = {
 
   async upload(file: File, title?: string, isDefault = false): Promise<ResumeDetail> {
     validateUpload(file.name, file.size);
-    const text = await extractText(file.name, await file.arrayBuffer());
+    const buffer = await file.arrayBuffer();
+    const text = await extractText(file.name, buffer);
     const db = await getDb();
     const userId = await currentUserId();
     const ts = nowIso();
@@ -79,6 +92,8 @@ export const localResumeApi: ResumeApi = {
       status: "parsed",
       isDefault,
       createdAt: ts,
+      fileType: extensionOf(file.name),
+      originalFile: new Blob([buffer], { type: file.type || "application/octet-stream" }),
     };
     await db.put("resumes", resume);
 
@@ -117,10 +132,50 @@ export const localResumeApi: ResumeApi = {
     return rows.sort((a, b) => b.versionNo - a.versionNo).map(toResumeVersion);
   },
 
+  async update(resumeId: string, input: ResumeVersionUpdateInput): Promise<ResumeDetail> {
+    const db = await getDb();
+    const userId = await currentUserId();
+    const resume = await requireOwned(db, resumeId, userId);
+    const version = await latestVersion(db, resumeId);
+    if (!version) notFound("简历尚未解析完成。");
+
+    if (input.structuredData !== undefined) version.structuredData = input.structuredData;
+    if (input.skillTags !== undefined) version.skillTags = input.skillTags;
+    if (input.summary !== undefined) version.summary = input.summary;
+    version.embedding = recomputeResumeEmbedding(
+      version.structuredData,
+      version.skillTags,
+      version.summary,
+    );
+    await db.put("resume_versions", version);
+    return toResumeDetail(resume, version);
+  },
+
+  async download(resumeId: string): Promise<{ blob: Blob; filename: string }> {
+    const db = await getDb();
+    const userId = await currentUserId();
+    const resume = await requireOwned(db, resumeId, userId);
+    if (resume.originalFile) {
+      const ext = resume.fileType ? `.${resume.fileType}` : "";
+      return {
+        blob: resume.originalFile,
+        filename: resume.fileName || `${resume.title}${ext}`,
+      };
+    }
+    // Fallback for resumes without a stored original (e.g. the seeded demo
+    // resume): serve the parsed raw text as a .txt download.
+    const version = await latestVersion(db, resumeId);
+    return {
+      blob: new Blob([version?.rawText ?? ""], { type: "text/plain;charset=utf-8" }),
+      filename: `${resume.title}.txt`,
+    };
+  },
+
   async remove(resumeId: string): Promise<void> {
     const db = await getDb();
     const userId = await currentUserId();
-    await requireOwned(db, resumeId, userId);
+    const resume = await requireOwned(db, resumeId, userId);
+    if (resume.isSeed) fail("演示简历不可删除。", 403);
     const versions = await db.getAllFromIndex("resume_versions", "byResume", resumeId);
     const tx = db.transaction(["resumes", "resume_versions"], "readwrite");
     await Promise.all(versions.map((v) => tx.objectStore("resume_versions").delete(v.id)));

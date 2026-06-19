@@ -28,7 +28,14 @@ import type {
 } from "@/lib/api/local/rows";
 
 const DB_NAME = "offerpilot";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
+
+/**
+ * fileName marker used to recognize the seeded demo resume in local mode.
+ * Kept here (not in seed.ts) so the v2 migration can backfill `isSeed` without
+ * importing the seed module (which would create a circular dependency).
+ */
+export const SEED_RESUME_FILE_NAME = "示例简历.txt";
 
 export interface OfferPilotDB extends DBSchema {
   meta: { key: string; value: MetaRow };
@@ -74,61 +81,77 @@ let dbPromise: Promise<IDBPDatabase<OfferPilotDB>> | null = null;
 export function getDb(): Promise<IDBPDatabase<OfferPilotDB>> {
   if (!dbPromise) {
     dbPromise = openDB<OfferPilotDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        db.createObjectStore("meta", { keyPath: "key" });
-        db.createObjectStore("users", { keyPath: "id" });
+      async upgrade(db, oldVersion, _newVersion, tx) {
+        if (oldVersion < 1) {
+          db.createObjectStore("meta", { keyPath: "key" });
+          db.createObjectStore("users", { keyPath: "id" });
 
-        const profiles = db.createObjectStore("profiles", { keyPath: "id" });
-        profiles.createIndex("byUser", "userId");
+          const profiles = db.createObjectStore("profiles", { keyPath: "id" });
+          profiles.createIndex("byUser", "userId");
 
-        const resumes = db.createObjectStore("resumes", { keyPath: "id" });
-        resumes.createIndex("byUser", "userId");
+          const resumes = db.createObjectStore("resumes", { keyPath: "id" });
+          resumes.createIndex("byUser", "userId");
 
-        const resumeVersions = db.createObjectStore("resume_versions", { keyPath: "id" });
-        resumeVersions.createIndex("byResume", "resumeId");
+          const resumeVersions = db.createObjectStore("resume_versions", { keyPath: "id" });
+          resumeVersions.createIndex("byResume", "resumeId");
 
-        const jobs = db.createObjectStore("jobs", { keyPath: "id" });
-        jobs.createIndex("byUser", "userId");
+          const jobs = db.createObjectStore("jobs", { keyPath: "id" });
+          jobs.createIndex("byUser", "userId");
 
-        const jobAnalyses = db.createObjectStore("job_analyses", { keyPath: "id" });
-        jobAnalyses.createIndex("byJob", "jobId");
+          const jobAnalyses = db.createObjectStore("job_analyses", { keyPath: "id" });
+          jobAnalyses.createIndex("byJob", "jobId");
 
-        const favorites = db.createObjectStore("job_favorites", { keyPath: "id" });
-        favorites.createIndex("byUser", "userId");
+          const favorites = db.createObjectStore("job_favorites", { keyPath: "id" });
+          favorites.createIndex("byUser", "userId");
 
-        const matchTasks = db.createObjectStore("match_tasks", { keyPath: "id" });
-        matchTasks.createIndex("byUser", "userId");
+          const matchTasks = db.createObjectStore("match_tasks", { keyPath: "id" });
+          matchTasks.createIndex("byUser", "userId");
 
-        const reports = db.createObjectStore("match_reports", { keyPath: "id" });
-        reports.createIndex("byUser", "userId");
-        reports.createIndex("byTask", "matchTaskId");
+          const reports = db.createObjectStore("match_reports", { keyPath: "id" });
+          reports.createIndex("byUser", "userId");
+          reports.createIndex("byTask", "matchTaskId");
 
-        const suggestions = db.createObjectStore("suggestions", { keyPath: "id" });
-        suggestions.createIndex("byReport", "reportId");
+          const suggestions = db.createObjectStore("suggestions", { keyPath: "id" });
+          suggestions.createIndex("byReport", "reportId");
 
-        const discoveryTasks = db.createObjectStore("discovery_tasks", { keyPath: "id" });
-        discoveryTasks.createIndex("byUser", "userId");
+          const discoveryTasks = db.createObjectStore("discovery_tasks", { keyPath: "id" });
+          discoveryTasks.createIndex("byUser", "userId");
 
-        const candidates = db.createObjectStore("discovered_candidates", { keyPath: "id" });
-        candidates.createIndex("byTask", "discoveryTaskId");
+          const candidates = db.createObjectStore("discovered_candidates", { keyPath: "id" });
+          candidates.createIndex("byTask", "discoveryTaskId");
 
-        const recLists = db.createObjectStore("recommendation_lists", { keyPath: "id" });
-        recLists.createIndex("byUser", "userId");
+          const recLists = db.createObjectStore("recommendation_lists", { keyPath: "id" });
+          recLists.createIndex("byUser", "userId");
 
-        const recItems = db.createObjectStore("recommendation_items", { keyPath: "id" });
-        recItems.createIndex("byList", "recommendationListId");
+          const recItems = db.createObjectStore("recommendation_items", { keyPath: "id" });
+          recItems.createIndex("byList", "recommendationListId");
 
-        const rewriteTasks = db.createObjectStore("rewrite_tasks", { keyPath: "id" });
-        rewriteTasks.createIndex("byUser", "userId");
+          const rewriteTasks = db.createObjectStore("rewrite_tasks", { keyPath: "id" });
+          rewriteTasks.createIndex("byUser", "userId");
 
-        const applications = db.createObjectStore("applications", { keyPath: "id" });
-        applications.createIndex("byUser", "userId");
+          const applications = db.createObjectStore("applications", { keyPath: "id" });
+          applications.createIndex("byUser", "userId");
 
-        const sources = db.createObjectStore("source_configs", { keyPath: "id" });
-        sources.createIndex("byUser", "userId");
+          const sources = db.createObjectStore("source_configs", { keyPath: "id" });
+          sources.createIndex("byUser", "userId");
 
-        db.createObjectStore("prompt_templates", { keyPath: "id" });
-        db.createObjectStore("scoring_rules", { keyPath: "id" });
+          db.createObjectStore("prompt_templates", { keyPath: "id" });
+          db.createObjectStore("scoring_rules", { keyPath: "id" });
+        }
+
+        if (oldVersion < 2) {
+          // Backfill the `isSeed` flag on the seeded demo resume created before
+          // the flag existed, so existing local users keep it protected too.
+          const store = tx.objectStore("resumes");
+          let cursor = await store.openCursor();
+          while (cursor) {
+            const row = cursor.value;
+            if (row.fileName === SEED_RESUME_FILE_NAME && row.isSeed === undefined) {
+              await cursor.update({ ...row, isSeed: true });
+            }
+            cursor = await cursor.continue();
+          }
+        }
       },
     });
   }

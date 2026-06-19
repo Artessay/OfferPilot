@@ -27,6 +27,7 @@ import type {
   ResumeDetail,
   ResumeSummary,
   ResumeVersion,
+  ResumeVersionUpdateInput,
   RewriteConfirmResult,
   RewriteTask,
   ScoringRule,
@@ -74,6 +75,8 @@ export interface ResumeApi {
   upload(file: File, title?: string, isDefault?: boolean): Promise<ResumeDetail>;
   setDefault(resumeId: string): Promise<ResumeSummary>;
   versions(resumeId: string): Promise<ResumeVersion[]>;
+  update(resumeId: string, input: ResumeVersionUpdateInput): Promise<ResumeDetail>;
+  download(resumeId: string): Promise<{ blob: Blob; filename: string }>;
   remove(resumeId: string): Promise<void>;
 }
 

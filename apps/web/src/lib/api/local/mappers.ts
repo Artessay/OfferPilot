@@ -68,6 +68,7 @@ export function toResumeSummary(r: ResumeRow): ResumeSummary {
     status: r.status,
     isDefault: r.isDefault,
     createdAt: r.createdAt,
+    isSeed: r.isSeed ?? false,
   };
 }
 
