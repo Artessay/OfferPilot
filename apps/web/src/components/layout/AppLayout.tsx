@@ -5,7 +5,9 @@ import { LogIn, LogOut, Sparkles } from "lucide-react";
 import { useAuth } from "@/app/auth/context";
 import { primaryNav, secondaryNav, type NavItem } from "@/app/navigation";
 import { useAuthModal } from "@/components/auth/auth-modal";
+import { LocalModeControls } from "@/components/layout/LocalModeControls";
 import { Button } from "@/components/ui/button";
+import { IS_LOCAL_MODE } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 function NavSection({ items }: { items: NavItem[] }) {
@@ -63,7 +65,9 @@ export function AppLayout() {
           <span className="hidden text-xs text-white/60 sm:inline">OfferPilot</span>
         </div>
         <div className="flex items-center gap-3 text-xs text-white/80">
-          {user ? (
+          {IS_LOCAL_MODE ? (
+            <LocalModeControls nickname={user?.nickname} />
+          ) : user ? (
             <>
               <span className="hidden md:inline">{user.nickname ?? user.email ?? "用户"}</span>
               <button

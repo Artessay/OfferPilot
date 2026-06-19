@@ -41,7 +41,12 @@ jobs:
           # Project sites are served under /<repo>/. For a user/org site or a
           # custom domain, set this to "/" via a repo variable instead.
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
-          # Set repo variable VITE_API_BASE_URL to your deployed backend URL.
+          # "local" builds a fully in-browser app (IndexedDB + on-device AI),
+          # no backend required. To point the Pages build at a deployed backend
+          # instead, set VITE_DATA_MODE to "remote" and VITE_API_BASE_URL below.
+          VITE_DATA_MODE: local
+          # Only used in remote mode. Set repo variable VITE_API_BASE_URL to
+          # your deployed backend URL when switching VITE_DATA_MODE to remote.
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
 
       - name: Upload Pages artifact

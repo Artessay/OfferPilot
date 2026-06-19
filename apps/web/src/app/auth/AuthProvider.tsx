@@ -6,6 +6,7 @@ import { AuthContext, type AuthContextValue } from "@/app/auth/context";
 import { authApi } from "@/lib/api/resources";
 import type { AuthResult, UserPublic } from "@/lib/api/types";
 import { tokenStore } from "@/lib/auth/tokenStore";
+import { IS_LOCAL_MODE } from "@/lib/config";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserPublic | null>(null);
@@ -17,10 +18,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(result.user);
   }, []);
 
-  // Restore a session from a persisted refresh token on first load.
+  // Restore a session on first load. In local (GitHub Pages) mode there is no
+  // backend or login wall: auto-provision a persistent in-browser profile so
+  // the whole app is usable immediately. In remote mode, restore from a
+  // persisted refresh token.
   useEffect(() => {
     let active = true;
     (async () => {
+      if (IS_LOCAL_MODE) {
+        try {
+          const result = await authApi.guest();
+          if (active) applyResult(result);
+        } finally {
+          if (active) setLoading(false);
+        }
+        return;
+      }
       if (!tokenStore.getRefresh()) {
         setLoading(false);
         return;
@@ -37,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [applyResult]);
 
   const login = useCallback(
     async (email: string, password: string) => {
